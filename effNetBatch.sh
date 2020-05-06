@@ -1,7 +1,7 @@
 #!/bin/bash
 #SBATCH -A SNIC2019-5-169
 #SBATCH -n 1
-#SBATCH --time=10:00:00
+#SBATCH --time=05:00:00
 #SBATCH --gres=gpu:k80:1
 
 
@@ -23,6 +23,6 @@ echo "Running $SLURM_NTASKS tasks."
 echo "Current working directory is `pwd`"
 
 
-python main.py --epochs 350 --batch-size=128 --wd=1e-5 --lr=0.256 --image_size=32
+python main.py --epochs 100 --pretrained --batch-size 64 --wd 1e-4 --lr 1.25e-2 --image_size 32 --momentum 0.9 --advprop -val
 
 echo "Program finished with exit code $? at: `date`"

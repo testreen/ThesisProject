@@ -79,15 +79,20 @@ class_names = ['inflammatory', 'lymphocyte', 'fibroblast and endothelial',
 shuffle = True
 k = 5 # Cross-validation splits
 
+def lambdaTransform(image):
+    return image * 2.0 - 1.0
 
 def main():
     args = parser.parse_args()
     print(torch.version.cuda)
     a = torch.cuda.FloatTensor([1.])
     print(a)
+
+    mp.set_start_method('spawn')
+
     # Normalize using dataset mean + std or advprop settings
     if args.advprop:
-        normalize = transforms.Lambda(lambda img: img * 2.0 - 1.0)
+        normalize = transforms.Lambda(lambdaTransform)
     else:
         normalize = transforms.Normalize(mean=[0.72482513, 0.59128926, 0.76370454],
                                          std=[0.18745105, 0.2514997,  0.15264913])
@@ -125,7 +130,6 @@ def main():
     skf = StratifiedKFold(n_splits=k, shuffle=shuffle, random_state=args.seed)
 
     device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
-    mp.set_start_method('spawn')
 
     # Transform to torch tensor
     tensor_test_x = torch.tensor(test_images, dtype=torch.float32, device=device)

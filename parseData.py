@@ -101,12 +101,12 @@ def parseData(basePath="", fileCount=len(label_paths)):
                 meanX = int((int(boundaries[1]) + int(boundaries[3])) / 2)
                 meanY = int((int(boundaries[2]) + int(boundaries[4])) / 2)
 
-                meanX = max(meanX, 16)
-                meanX = min(meanX, imarray.shape[1]-16)
+                meanX = max(meanX, 18)
+                meanX = min(meanX, imarray.shape[1]-18)
 
-                meanY = max(meanY, 16)
-                meanY = min(meanY, imarray.shape[0]-16)
+                meanY = max(meanY, 18)
+                meanY = min(meanY, imarray.shape[0]-18)
 
-                cropArray = imarray[meanY-16:meanY+16, meanX-16:meanX+16, :]/256
+                cropArray = imarray[meanY-18:meanY+18, meanX-18:meanX+18, :]/256
                 images.append(cropArray)
     return images, labels
