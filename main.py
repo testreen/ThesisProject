@@ -84,9 +84,6 @@ def lambdaTransform(image):
 
 def main():
     args = parser.parse_args()
-    print(torch.version.cuda)
-    a = torch.cuda.FloatTensor([1.])
-    print(a)
 
     mp.set_start_method('spawn')
 
@@ -121,6 +118,10 @@ def main():
     # Load and split datasets and convert to tensor
     # Test images from different slices than train
     images, labels = parseData(basePath=args.data)
+
+    for i in range(num_classes):
+        print('The count of {} is: {}'.format(class_names[i], labels.count(i)))
+    
 
     train_images = images[:min(20390, len(images)-20)]
     train_labels = labels[:min(20390, len(images)-20)]
