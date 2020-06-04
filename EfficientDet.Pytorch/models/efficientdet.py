@@ -6,7 +6,13 @@ from models.bifpn import BIFPN
 from .retinahead import RetinaHead
 from models.module import RegressionModel, ClassificationModel, Anchors, ClipBoxes, BBoxTransform
 from torchvision.ops import nms
+from collections import OrderedDict
 from .losses import FocalLoss
+import os
+
+script_dir = os.path.dirname(__file__)
+
+
 MODEL_MAP = {
     'efficientdet-d0': 'efficientnet-b0',
     'efficientdet-d1': 'efficientnet-b1',
@@ -23,6 +29,7 @@ class EfficientDet(nn.Module):
     def __init__(self,
                  num_classes,
                  network='efficientdet-d0',
+                 preload='model_kebnekaise.pth.tar',
                  D_bifpn=3,
                  W_bifpn=88,
                  D_class=3,
@@ -30,7 +37,22 @@ class EfficientDet(nn.Module):
                  threshold=0.01,
                  iou_threshold=0.5):
         super(EfficientDet, self).__init__()
-        self.backbone = EfficientNet.from_pretrained(MODEL_MAP[network])
+        self.backbone = EfficientNet.from_pretrained(MODEL_MAP[network], advprop=True, num_classes=num_classes)
+
+        path = os.path.join(script_dir, preload)
+        checkpoint = torch.load(path, map_location=torch.device('cpu'))
+
+        state_dict = checkpoint['state_dict']
+        new_state_dict = OrderedDict()
+        for k, v in state_dict.items():
+            if k.startswith('module.'):
+                k = k[7:]
+            new_state_dict[k] = v
+        checkpoint['state_dict'] = new_state_dict
+        self.backbone.load_state_dict(checkpoint['state_dict'])
+        print("=> loaded checkpoint '{}' (epoch {})"
+              .format('models/model_kebnekaise.pth.tar', checkpoint['epoch']))
+
         self.is_training = is_training
         self.neck = BIFPN(in_channels=self.backbone.get_list_features()[-5:],
                           out_channels=W_bifpn,

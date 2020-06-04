@@ -1,48 +1,33 @@
-from tqdm import tqdm
 import argparse
 import os
 import random
-import shutil
 import time
 import warnings
 import torch
-import torch.nn as nn
 import torch.nn.parallel
 import torch.backends.cudnn as cudnn
-import torch.distributed as dist
 import torch.optim
-import torch.multiprocessing as mp
 import torch.utils.data
 import torch.utils.data.distributed
 import torchvision.transforms as transforms
-import torchvision.datasets as datasets
 
-import os
-import sys
-import time
-import argparse
 import numpy as np
 import torch
 import torch.optim as optim
-import torch.backends.cudnn as cudnn
 from torch.utils.data import DataLoader
 
 from models.efficientdet import EfficientDet
-from models.losses import FocalLoss
-from datasets import VOCDetection, CocoDataset, get_augumentation, detection_collate, Resizer, Normalizer, Augmenter, collater
+from datasets import Resizer, Normalizer, Augmenter, collater
+from datasets.ki import KiDataset
 from utils import EFFICIENTDET, get_state_dict
-from eval import evaluate, evaluate_coco
+from eval import evaluate
 
-parser = argparse.ArgumentParser(description='PyTorch ImageNet Training')
-parser.add_argument('--dataset', default='VOC', choices=['VOC', 'COCO'],
-                    type=str, help='VOC or COCO')
-parser.add_argument(
-    '--dataset_root',
-    default='/root/data/VOCdevkit/',
-    help='Dataset root directory path [/root/data/VOCdevkit/, /root/data/coco/]')
+parser = argparse.ArgumentParser(description='PyTorch EfficientDet Training')
+
 parser.add_argument('--network', default='efficientdet-d0', type=str,
                     help='efficientdet-[d0, d1, ..]')
-
+parser.add_argument('--dataset_root', default='datasets/', type=str,
+                    help='path to dataset')
 parser.add_argument('--resume', default=None, type=str,
                     help='Checkpoint state_dict file to resume training from')
 parser.add_argument('--num_epoch', default=500, type=int,
@@ -65,11 +50,11 @@ parser.add_argument('--gamma', default=0.1, type=float,
                     help='Gamma update for SGD')
 parser.add_argument('--save_folder', default='./saved/weights/', type=str,
                     help='Directory for saving checkpoint models')
-parser.add_argument('-j', '--workers', default=4, type=int, metavar='N',
+parser.add_argument('-j', '--workers', default=0, type=int, metavar='N',
                     help='number of data loading workers (default: 4)')
 parser.add_argument('--start_epoch', default=0, type=int, metavar='N',
                     help='manual epoch number (useful on restarts)')
-parser.add_argument('--seed', default=24, type=int,
+parser.add_argument('--seed', default=None, type=int,
                     help='seed for initializing training. ')
 parser.add_argument('--gpu', default=None, type=int,
                     help='GPU id to use.')
@@ -83,12 +68,15 @@ def train(train_loader, model, scheduler, optimizer, epoch, args):
     start = time.time()
     total_loss = []
     model.train()
-    model.module.is_training = True
+    model.is_training = True
     model.module.freeze_bn()
     optimizer.zero_grad()
     for idx, (images, annotations) in enumerate(train_loader):
-        images = images.cuda().float()
-        annotations = annotations.cuda()
+        if torch.cuda.is_available():
+            images = images.cuda().float()
+            annotations = annotations.cuda()
+        else:
+            images = images.float()
         classification_loss, regression_loss = model([images, annotations])
         classification_loss = classification_loss.mean()
         regression_loss = regression_loss.mean()
@@ -103,7 +91,7 @@ def train(train_loader, model, scheduler, optimizer, epoch, args):
             optimizer.zero_grad()
 
         total_loss.append(loss.item())
-        if(iteration % 300 == 0):
+        if(iteration % 1 == 0):
             print('{} iteration: training ...'.format(iteration))
             ans = {
                 'epoch': epoch,
@@ -126,14 +114,11 @@ def train(train_loader, model, scheduler, optimizer, epoch, args):
 
 def test(dataset, model, epoch, args):
     print("{} epoch: \t start validation....".format(epoch))
-    model = model.module
+    model = model
     model.eval()
     model.is_training = False
     with torch.no_grad():
-        if(args.dataset == 'VOC'):
-            evaluate(dataset, model)
-        else:
-            evaluate_coco(dataset, model)
+        evaluate(dataset, model)
 
 
 def main_worker(gpu, ngpus_per_node, args):
@@ -141,45 +126,29 @@ def main_worker(gpu, ngpus_per_node, args):
     if args.gpu is not None:
         print("Use GPU: {} for training".format(args.gpu))
 
-    if args.distributed:
-        if args.dist_url == "env://" and args.rank == -1:
-            # args.rank = int(os.environ["RANK"])
-            args.rank = 1
-        if args.multiprocessing_distributed:
-            # For multiprocessing distributed training, rank needs to be the
-            # global rank among all the processes
-            args.rank = args.rank * ngpus_per_node + gpu
-        dist.init_process_group(
-            backend=args.dist_backend,
-            init_method=args.dist_url,
-            world_size=args.world_size,
-            rank=args.rank)
-
     # Training dataset
     train_dataset = []
-    if(args.dataset == 'VOC'):
-        train_dataset = VOCDetection(root=args.dataset_root, transform=transforms.Compose(
-            [Normalizer(), Augmenter(), Resizer()]))
-        valid_dataset = VOCDetection(root=args.dataset_root, image_sets=[(
-            '2007', 'test')], transform=transforms.Compose([Normalizer(), Resizer()]))
-        args.num_class = train_dataset.num_classes()
-    elif(args.dataset == 'COCO'):
-        train_dataset = CocoDataset(
-            root_dir=args.dataset_root,
-            set_name='train2017',
-            transform=transforms.Compose(
-                [
-                    Normalizer(),
-                    Augmenter(),
-                    Resizer()]))
-        valid_dataset = CocoDataset(
-            root_dir=args.dataset_root,
-            set_name='val2017',
-            transform=transforms.Compose(
-                [
-                    Normalizer(),
-                    Resizer()]))
-        args.num_class = train_dataset.num_classes()
+    train_dataset = KiDataset(
+        root=args.dataset_root,
+        set_name='train',
+        transform=transforms.Compose(
+            [
+                Normalizer(),
+                Augmenter()]))
+    valid_dataset = KiDataset(
+        root=args.dataset_root,
+        set_name='val',
+        transform=transforms.Compose(
+            [
+                Normalizer()]))
+    #test_dataset = KiDataset(
+    #    root=args.dataset_root,
+    #    set_name='test',
+    #    transform=transforms.Compose(
+    #        [
+    #            Normalizer()]))
+
+    args.num_class = 4
 
     train_loader = DataLoader(train_dataset,
                               batch_size=args.batch_size,
@@ -224,9 +193,12 @@ def main_worker(gpu, ngpus_per_node, args):
         torch.cuda.set_device(args.gpu)
         model = model.cuda(args.gpu)
     else:
-        model = model.cuda()
-        print('Run with DataParallel ....')
-        model = torch.nn.DataParallel(model).cuda()
+        if torch.cuda.is_available():
+            model = model.cuda()
+            print('Run with DataParallel ....')
+            model = torch.nn.DataParallel(model).cuda()
+        else:
+            model = torch.nn.DataParallel(model)
 
     # define loss function (criterion) , optimizer, scheduler
     optimizer = optim.AdamW(model.parameters(), lr=args.lr)
@@ -250,15 +222,14 @@ def main_worker(gpu, ngpus_per_node, args):
             state,
             os.path.join(
                 args.save_folder,
-                args.dataset,
                 args.network,
                 "checkpoint_{}.pth".format(epoch)))
 
 
 def main():
     args = parser.parse_args()
-    if(not os.path.exists(os.path.join(args.save_folder, args.dataset, args.network))):
-        os.makedirs(os.path.join(args.save_folder, args.dataset, args.network))
+    if(not os.path.exists(os.path.join(args.save_folder, args.network))):
+        os.makedirs(os.path.join(args.save_folder, args.network))
     if args.seed is not None:
         random.seed(args.seed)
         torch.manual_seed(args.seed)

@@ -5,13 +5,12 @@ import numpy as np
 import torch
 from torch.utils.data import DataLoader
 from torchvision import transforms
-from tqdm import tqdm
-from pycocotools.cocoeval import COCOeval
 import json
 
-from datasets import (Augmenter, CocoDataset, Normalizer,
-                      Resizer, VOCDetection, collater, detection_collate,
+from datasets import (Augmenter, Normalizer,
+                      Resizer, collater, detection_collate,
                       get_augumentation)
+from datasets.ki import KiDataset
 from models.efficientdet import EfficientDet
 from utils import EFFICIENTDET, get_state_dict
 
@@ -257,100 +256,17 @@ def evaluate(
     return np.mean(avg_mAP), average_precisions
 
 
-def evaluate_coco(dataset, model, threshold=0.05):
-
-    model.eval()
-
-    with torch.no_grad():
-
-        # start collecting results
-        results = []
-        image_ids = []
-
-        for index in range(len(dataset)):
-            data = dataset[index]
-            scale = data['scale']
-
-            # run network
-            scores, labels, boxes = model(data['img'].permute(
-                2, 0, 1).cuda().float().unsqueeze(dim=0))
-            scores = scores.cpu()
-            labels = labels.cpu()
-            boxes = boxes.cpu()
-
-            # correct boxes for image scale
-            boxes /= scale
-
-            if boxes.shape[0] > 0:
-                # change to (x, y, w, h) (MS COCO standard)
-                boxes[:, 2] -= boxes[:, 0]
-                boxes[:, 3] -= boxes[:, 1]
-
-                # compute predicted labels and scores
-                # for box, score, label in zip(boxes[0], scores[0], labels[0]):
-                for box_id in range(boxes.shape[0]):
-                    score = float(scores[box_id])
-                    label = int(labels[box_id])
-                    box = boxes[box_id, :]
-
-                    # scores are sorted, so we can break
-                    if score < threshold:
-                        break
-
-                    # append detection for each positively labeled class
-                    image_result = {
-                        'image_id': dataset.image_ids[index],
-                        'category_id': dataset.label_to_coco_label(label),
-                        'score': float(score),
-                        'bbox': box.tolist(),
-                    }
-
-                    # append detection to results
-                    results.append(image_result)
-
-            # append image to list of processed images
-            image_ids.append(dataset.image_ids[index])
-
-            # print progress
-            print('{}/{}'.format(index, len(dataset)), end='\r')
-
-        if not len(results):
-            return
-
-        # write output
-        json.dump(results, open('{}_bbox_results.json'.format(
-            dataset.set_name), 'w'), indent=4)
-
-        # load results in COCO evaluation tool
-        coco_true = dataset.coco
-        coco_pred = coco_true.loadRes(
-            '{}_bbox_results.json'.format(dataset.set_name))
-
-        # run COCO evaluation
-        coco_eval = COCOeval(coco_true, coco_pred, 'bbox')
-        coco_eval.params.imgIds = image_ids
-        coco_eval.evaluate()
-        coco_eval.accumulate()
-        coco_eval.summarize()
-
-        model.train()
-
-        return
-
-
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(
         description='EfficientDet Training With Pytorch')
     train_set = parser.add_mutually_exclusive_group()
-    parser.add_argument('--dataset', default='VOC', choices=['VOC', 'COCO'],
-                        type=str, help='VOC or COCO')
-    parser.add_argument('--dataset_root', default='/root/data/VOCdevkit/',
-                        help='Dataset root directory path [/root/data/VOCdevkit/, /root/data/coco/]')
+    parser.add_argument('--dataset_root', default='',
+                        help='Dataset root directory path')
     parser.add_argument('-t', '--threshold', default=0.4,
                         type=float, help='Visualization threshold')
     parser.add_argument('-it', '--iou_threshold', default=0.5,
                         type=float, help='Visualization threshold')
-    parser.add_argument('--weight', default='./checkpoint_VOC_efficientdet-d0_248.pth', type=str,
+    parser.add_argument('--weight', default='./models/model_kebnekaise.pth.tar', type=str,
                         help='Checkpoint state_dict file to resume training from')
     args = parser.parse_args()
 
@@ -373,11 +289,12 @@ if __name__ == '__main__':
             iou_threshold=args.iou_threshold)
         model.load_state_dict(checkpoint['state_dict'])
     model = model.cuda()
-    if(args.dataset == 'VOC'):
-        valid_dataset = VOCDetection(root=args.dataset_root, image_sets=[('2007', 'test')],
-                                     transform=transforms.Compose([Normalizer(), Resizer()]))
-        evaluate(valid_dataset, model)
-    else:
-        valid_dataset = CocoDataset(root_dir=args.dataset_root, set_name='val2017',
-                                    transform=transforms.Compose([Normalizer(), Resizer()]))
-        evaluate_coco(valid_dataset, model)
+
+    test_dataset = KiDataset(
+        root_dir=args.dataset_root,
+        set_name='test',
+        transform=transforms.Compose(
+            [
+                Normalizer(),
+                Resizer()]))
+    evaluate(test_dataset, model)
