@@ -1,12 +1,13 @@
 import argparse
 import os
-
+import cv2
 import numpy as np
 import torch
 from torch.utils.data import DataLoader
 from torchvision import transforms
 import json
 
+from datasets.visual_aug import visualize
 from datasets import (Augmenter, Normalizer,
                       Resizer, collater, detection_collate,
                       get_augumentation)
@@ -72,7 +73,7 @@ def _compute_ap(recall, precision):
     return ap
 
 
-def _get_detections(dataset, retinanet, score_threshold=0.05, max_detections=100, save_path=None):
+def _get_detections(dataset, retinanet, score_threshold=0.05, max_detections=1000, save_path=None):
     """ Get the detections from the retinanet using the generator.
     The result is a list of lists such that the size is:
         all_detections[num_images][num_classes] = detections[num_detections, 4 + num_classes]
@@ -94,17 +95,21 @@ def _get_detections(dataset, retinanet, score_threshold=0.05, max_detections=100
 
         for index in range(len(dataset)):
             data = dataset[index]
-            scale = data['scale']
 
             # run network
-            scores, labels, boxes = retinanet(data['img'].permute(
-                2, 0, 1).cuda().float().unsqueeze(dim=0))
+            data['img'] = torch.from_numpy(data['img'])
+            #print(data['img'])
+            if torch.cuda.is_available():
+                scores, labels, boxes = retinanet(data['img'].permute(
+                    2, 0, 1).cuda().float().unsqueeze(dim=0))
+            else:
+                scores, labels, boxes = retinanet(data['img'].permute(
+                    2, 0, 1).float().unsqueeze(dim=0))
             scores = scores.cpu().numpy()
             labels = labels.cpu().numpy()
             boxes = boxes.cpu().numpy()
 
-            # correct boxes for image scale
-            boxes /= scale
+            #print(scores)
 
             # select indices which have a score above the threshold
             indices = np.where(scores > score_threshold)[0]
@@ -121,6 +126,14 @@ def _get_detections(dataset, retinanet, score_threshold=0.05, max_detections=100
                 image_labels = labels[indices[scores_sort]]
                 image_detections = np.concatenate([image_boxes, np.expand_dims(
                     image_scores, axis=1), np.expand_dims(image_labels, axis=1)], axis=1)
+
+                #print(image_boxes)
+                #print(image_labels)
+                vis = visualize(dataset.get_original_image(index), image_boxes, image_labels)
+                if index == 0:
+                    cv2.imshow('image', vis)
+                    cv2.waitKey(0)
+                    cv2.destroyAllWindows()
 
                 # copy detections to all_detections
                 for label in range(dataset.num_classes()):
@@ -153,8 +166,7 @@ def _get_annotations(generator):
 
         # copy detections to all_annotations
         for label in range(generator.num_classes()):
-            all_annotations[i][label] = annotations[annotations[:, 4]
-                                                    == label, :4].copy()
+            all_annotations[i][label] = annotations[annotations[:, 4] == label, :4].copy()
 
         print('{}/{}'.format(i + 1, len(generator)), end='\r')
 
@@ -260,13 +272,13 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser(
         description='EfficientDet Training With Pytorch')
     train_set = parser.add_mutually_exclusive_group()
-    parser.add_argument('--dataset_root', default='',
+    parser.add_argument('--dataset_root', default='datasets/',
                         help='Dataset root directory path')
     parser.add_argument('-t', '--threshold', default=0.4,
                         type=float, help='Visualization threshold')
     parser.add_argument('-it', '--iou_threshold', default=0.5,
                         type=float, help='Visualization threshold')
-    parser.add_argument('--weight', default='./models/model_kebnekaise.pth.tar', type=str,
+    parser.add_argument('--weight', default='./saved/weights/efficientdet-d0/checkpoint_12.pth', type=str,
                         help='Checkpoint state_dict file to resume training from')
     args = parser.parse_args()
 
@@ -288,13 +300,13 @@ if __name__ == '__main__':
             threshold=args.threshold,
             iou_threshold=args.iou_threshold)
         model.load_state_dict(checkpoint['state_dict'])
-    model = model.cuda()
+    if torch.cuda.is_available():
+        model = model.cuda()
 
     test_dataset = KiDataset(
-        root_dir=args.dataset_root,
+        root=args.dataset_root,
         set_name='test',
         transform=transforms.Compose(
             [
-                Normalizer(),
-                Resizer()]))
+                Normalizer()]))
     evaluate(test_dataset, model)
