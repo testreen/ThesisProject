@@ -101,6 +101,8 @@ class EfficientDet(nn.Module):
                 if torch.cuda.is_available():
                     return [torch.zeros(0).cuda(), torch.zeros(0).cuda(), torch.zeros(0, 4).cuda()]
                 return [torch.zeros(0), torch.zeros(0), torch.zeros(0, 4)]
+            else:
+                print(scores_over_thresh.shape)
             classification = classification[:, scores_over_thresh, :]
             transformed_anchors = transformed_anchors[:, scores_over_thresh, :]
             scores = scores[:, scores_over_thresh, :]
@@ -108,6 +110,10 @@ class EfficientDet(nn.Module):
                 transformed_anchors[0, :, :], scores[0, :, 0], iou_threshold=self.iou_threshold)
             nms_scores, nms_class = classification[0, anchors_nms_idx, :].max(
                 dim=1)
+
+            print(nms_scores)
+            print(nms_class)
+            print(transformed_anchors[0, anchors_nms_idx, :])
             return [nms_scores, nms_class, transformed_anchors[0, anchors_nms_idx, :]]
 
     def freeze_bn(self):

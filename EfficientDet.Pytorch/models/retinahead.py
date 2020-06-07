@@ -38,7 +38,7 @@ class RetinaHead(nn.Module):
                  feat_channels=256,
                  anchor_scales=[16],
                  anchor_ratios=[1.0],
-                 anchor_strides=[4, 8, 16, 32, 64],
+                 anchor_strides=[8, 16, 32, 64, 128],
                  stacked_convs=4,
                  octave_base_scale=4,
                  scales_per_octave=3,

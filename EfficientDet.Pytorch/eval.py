@@ -175,7 +175,7 @@ def _get_annotations(generator):
 def evaluate(
     generator,
     retinanet,
-    iou_threshold=0.5,
+    iou_threshold=0.05,
     score_threshold=0.05,
     max_detections=100,
     save_path=None
@@ -277,7 +277,7 @@ if __name__ == '__main__':
                         type=float, help='Visualization threshold')
     parser.add_argument('-it', '--iou_threshold', default=0.5,
                         type=float, help='Visualization threshold')
-    parser.add_argument('--weight', default='./saved/weights/kebnekaise/checkpoint_1.pth', type=str,
+    parser.add_argument('--weight', default='./saved/weights/kebnekaise/checkpoint_18.pth', type=str,
                         help='Checkpoint state_dict file to resume training from')
     args = parser.parse_args()
 
@@ -304,7 +304,7 @@ if __name__ == '__main__':
 
     test_dataset = KiDataset(
         root=args.dataset_root,
-        set_name='train',
+        set_name='test',
         transform=transforms.Compose(
             [
                 Normalizer()]))
