@@ -119,9 +119,11 @@ def main():
     # Test images from different slices than train
     images, labels = parseData(basePath=args.data)
 
+    print(images)
+
     for i in range(num_classes):
         print('The count of {} is: {}'.format(class_names[i], labels.count(i)))
-    
+
 
     train_images = images[:min(20390, len(images)-20)]
     train_labels = labels[:min(20390, len(images)-20)]

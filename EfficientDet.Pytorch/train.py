@@ -68,7 +68,7 @@ def train(train_loader, model, scheduler, optimizer, epoch, args):
     start = time.time()
     total_loss = []
     model.train()
-    model.is_training = True
+    model.module.is_training = True
     model.module.freeze_bn()
     optimizer.zero_grad()
     for idx, (images, annotations) in enumerate(train_loader):
@@ -77,6 +77,7 @@ def train(train_loader, model, scheduler, optimizer, epoch, args):
             annotations = annotations.cuda()
         else:
             images = images.float()
+
         classification_loss, regression_loss = model([images, annotations])
         classification_loss = classification_loss.mean()
         regression_loss = regression_loss.mean()
@@ -116,7 +117,7 @@ def test(dataset, model, epoch, args):
     print("{} epoch: \t start validation....".format(epoch))
     model = model
     model.eval()
-    model.is_training = False
+    model.module.is_training = False
     with torch.no_grad():
         evaluate(dataset, model)
 

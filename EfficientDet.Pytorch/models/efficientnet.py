@@ -193,7 +193,7 @@ class EfficientNet(nn.Module):
 
     def forward(self, inputs):
         """ Calls extract_features to extract features, applies final linear layer, and returns logits. """
-        bs = inputs.size(0)
+        #bs = inputs.size(0)
         # Convolution layers
         x = self.extract_features(inputs)
 

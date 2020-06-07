@@ -21,8 +21,8 @@ class KiDataset(data.Dataset):
 
         # Total size 547
         if set_name == 'train':
-            self.image_set = images[:10] # 57*16 images
-            self.target_set = target[:10]  # [[[xmin, ymin, xmax, ymax, label_ind], ... ], [[xmin, ymin, xmax, ymax, label_ind], ... ]]
+            self.image_set = images[:344] # 57*16 images
+            self.target_set = target[:344]  # [[[xmin, ymin, xmax, ymax, label_ind], ... ], [[xmin, ymin, xmax, ymax, label_ind], ... ]]
         elif set_name == 'val':
             self.image_set = images[344:430] # 57*16 images
             self.target_set = target[344:430]  # [[[xmin, ymin, xmax, ymax, label_ind], ... ], [[xmin, ymin, xmax, ymax, label_ind], ... ]]
@@ -51,8 +51,11 @@ class KiDataset(data.Dataset):
     def num_classes(self):
         return len(KI_CLASSES)
 
+    def get_original_image(self, index):
+        return self.image_set[index]
+
     def label_to_name(self, label):
         return KI_CLASSES[label]
 
     def load_annotations(self, index):
-        return self.target_set[index]
+        return np.array(self.target_set[index])

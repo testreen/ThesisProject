@@ -83,6 +83,7 @@ class EfficientDet(nn.Module):
             inputs = inputs
         x = self.extract_feat(inputs)
         outs = self.bbox_head(x)
+        
         classification = torch.cat([out for out in outs[0]], dim=1)
         regression = torch.cat([out for out in outs[1]], dim=1)
         anchors = self.anchors(inputs)

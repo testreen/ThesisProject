@@ -79,7 +79,7 @@ def parseKI(basePath="", fileCount=len(label_paths)):
         # Parse full image to nparray
         image = basePath+label_paths[path]+'.tif'
         im = Image.open(image)
-        imarray = np.array(im, dtype=np.double)
+        imarray = np.array(im, dtype=np.double)/256
 
         # Pad image to 2000x2000x3
         padded_array = np.zeros((2000, 2000, 3))

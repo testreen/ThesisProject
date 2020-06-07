@@ -23,7 +23,7 @@ if __name__ == '__main__':
     labels = target[:, 4]
 
     vis = visualize_bbox(img, bbox, labels)
-    cv2.imshow('image', vis/255)
+    cv2.imshow('image', vis)
     cv2.waitKey(0)
     cv2.destroyAllWindows()
 
