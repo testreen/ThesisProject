@@ -40,11 +40,11 @@ parser.add_argument('--device', default=[0, 1], type=list,
                     help='Use CUDA to train model')
 parser.add_argument('--grad_accumulation_steps', default=1, type=int,
                     help='Number of gradient accumulation steps')
-parser.add_argument('--lr', '--learning-rate', default=1e-4, type=float,
+parser.add_argument('--lr', '--learning-rate', default=0.16, type=float,
                     help='initial learning rate')
 parser.add_argument('--momentum', default=0.9, type=float,
                     help='Momentum value for optim')
-parser.add_argument('--weight_decay', default=5e-4, type=float,
+parser.add_argument('--weight_decay', default=4e-5, type=float,
                     help='Weight decay for SGD')
 parser.add_argument('--gamma', default=0.1, type=float,
                     help='Gamma update for SGD')
@@ -202,9 +202,8 @@ def main_worker(gpu, ngpus_per_node, args):
             model = torch.nn.DataParallel(model)
 
     # define loss function (criterion) , optimizer, scheduler
-    optimizer = optim.AdamW(model.parameters(), lr=args.lr)
-    scheduler = optim.lr_scheduler.ReduceLROnPlateau(
-        optimizer, patience=3, verbose=True)
+    optimizer = optim.SGD(model.parameters(), lr=args.lr, momentum=args.momentum, weight_decay=args.weight_decay, nesterov=True)
+    scheduler = optim.lr_scheduler.CosineAnnealingLR(optimizer, args.lr)
     cudnn.benchmark = True
 
     for epoch in range(args.start_epoch, args.num_epoch):

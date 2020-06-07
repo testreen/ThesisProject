@@ -39,19 +39,7 @@ class EfficientDet(nn.Module):
         super(EfficientDet, self).__init__()
         self.backbone = EfficientNet.from_pretrained(MODEL_MAP[network], advprop=True, num_classes=num_classes)
 
-        path = os.path.join(script_dir, preload)
-        checkpoint = torch.load(path, map_location=torch.device('cpu'))
 
-        state_dict = checkpoint['state_dict']
-        new_state_dict = OrderedDict()
-        for k, v in state_dict.items():
-            if k.startswith('module.'):
-                k = k[7:]
-            new_state_dict[k] = v
-        checkpoint['state_dict'] = new_state_dict
-        self.backbone.load_state_dict(checkpoint['state_dict'])
-        print("=> loaded checkpoint '{}' (epoch {})"
-              .format('models/model_kebnekaise.pth.tar', checkpoint['epoch']))
 
         self.is_training = is_training
         self.neck = BIFPN(in_channels=self.backbone.get_list_features()[-5:],
@@ -76,6 +64,20 @@ class EfficientDet(nn.Module):
         self.freeze_bn()
         self.criterion = FocalLoss()
 
+        path = os.path.join(script_dir, preload)
+        checkpoint = torch.load(path, map_location=torch.device('cpu'))
+
+        state_dict = checkpoint['state_dict']
+        new_state_dict = OrderedDict()
+        for k, v in state_dict.items():
+            if k.startswith('module.'):
+                k = k[7:]
+            new_state_dict[k] = v
+        checkpoint['state_dict'] = new_state_dict
+        self.backbone.load_state_dict(checkpoint['state_dict'])
+        print("=> loaded checkpoint '{}' (epoch {})"
+              .format('models/model_kebnekaise.pth.tar', checkpoint['epoch']))
+
     def forward(self, inputs):
         if self.is_training:
             inputs, annotations = inputs
@@ -83,7 +85,7 @@ class EfficientDet(nn.Module):
             inputs = inputs
         x = self.extract_feat(inputs)
         outs = self.bbox_head(x)
-        
+
         classification = torch.cat([out for out in outs[0]], dim=1)
         regression = torch.cat([out for out in outs[1]], dim=1)
         anchors = self.anchors(inputs)
@@ -98,6 +100,8 @@ class EfficientDet(nn.Module):
             if scores_over_thresh.sum() == 0:
                 print('No boxes to NMS')
                 # no boxes to NMS, just return
+                if torch.cuda.is_available():
+                    return [torch.zeros(0).cuda(), torch.zeros(0).cuda(), torch.zeros(0, 4).cuda()]
                 return [torch.zeros(0), torch.zeros(0), torch.zeros(0, 4)]
             classification = classification[:, scores_over_thresh, :]
             transformed_anchors = transformed_anchors[:, scores_over_thresh, :]

@@ -109,7 +109,6 @@ def _get_detections(dataset, retinanet, score_threshold=0.05, max_detections=100
             labels = labels.cpu().numpy()
             boxes = boxes.cpu().numpy()
 
-            #print(scores)
 
             # select indices which have a score above the threshold
             indices = np.where(scores > score_threshold)[0]
@@ -278,7 +277,7 @@ if __name__ == '__main__':
                         type=float, help='Visualization threshold')
     parser.add_argument('-it', '--iou_threshold', default=0.5,
                         type=float, help='Visualization threshold')
-    parser.add_argument('--weight', default='./saved/weights/efficientdet-d0/checkpoint_12.pth', type=str,
+    parser.add_argument('--weight', default='./saved/weights/kebnekaise/checkpoint_1.pth', type=str,
                         help='Checkpoint state_dict file to resume training from')
     args = parser.parse_args()
 
@@ -305,7 +304,7 @@ if __name__ == '__main__':
 
     test_dataset = KiDataset(
         root=args.dataset_root,
-        set_name='test',
+        set_name='train',
         transform=transforms.Compose(
             [
                 Normalizer()]))
