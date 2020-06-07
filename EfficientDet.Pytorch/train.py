@@ -18,6 +18,7 @@ from torch.utils.data import DataLoader
 
 from models.efficientdet import EfficientDet
 from datasets import Resizer, Normalizer, Augmenter, collater
+from datasets.visual_aug import visualize
 from datasets.ki import KiDataset
 from utils import EFFICIENTDET, get_state_dict
 from eval import evaluate

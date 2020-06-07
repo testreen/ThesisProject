@@ -14,8 +14,9 @@ def visualize_bbox(img, bbox, class_id, class_idx_to_name=None, color=BOX_COLOR,
     for i in range(len(bbox)):
         x_min, y_min, x_max, y_max = bbox[i]
         x_min, x_max, y_min, y_max = int(x_min), int(x_max), int(y_min), int(y_max)
-        cv2.rectangle(img, (x_min, y_min), (x_max, y_max),
-                      color=color[class_id[i]], thickness=thickness)
+        if int(class_id[i]) != -1:
+            cv2.rectangle(img, (x_min, y_min), (x_max, y_max),
+                          color=color[int(class_id[i])], thickness=thickness)
     # class_name = class_idx_to_name[class_id]
     # ((text_width, text_height), _) = cv2.getTextSize(class_name, cv2.FONT_HERSHEY_SIMPLEX, 0.35, 1)
     # cv2.rectangle(img, (x_min, y_min - int(1.3 * text_height)), (x_min + text_width, y_min), BOX_COLOR, -1)

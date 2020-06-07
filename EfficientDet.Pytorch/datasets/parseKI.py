@@ -118,18 +118,18 @@ def parseKI(basePath="", fileCount=len(label_paths)):
                         meanX = int((int(boundaries[1]) + int(boundaries[3])) / 2)
                         meanY = int((int(boundaries[2]) + int(boundaries[4])) / 2)
 
-                        meanX = max(meanX, 5)
-                        meanX = min(meanX, imarray.shape[1]-5)
+                        meanX = max(meanX, 8)
+                        meanX = min(meanX, imarray.shape[1]-8)
 
-                        meanY = max(meanY, 5)
-                        meanY = min(meanY, imarray.shape[0]-5)
+                        meanY = max(meanY, 8)
+                        meanY = min(meanY, imarray.shape[0]-8)
 
                         if meanX > xmin and meanX <= xmax and meanY > ymin and meanY <= ymax and class_names.index(label) != 4:
                             #print(meanX, xmin, xmax, meanY, ymin, ymax, i*4+j)
-                            target.append(max(meanX-5-xmin, 0))
-                            target.append(max(meanY-5-ymin, 0))
-                            target.append(min(meanX+5-xmin, 512))
-                            target.append(min(meanY+5-ymin, 512))
+                            target.append(max(meanX-8-xmin, 0))
+                            target.append(max(meanY-8-ymin, 0))
+                            target.append(min(meanX+8-xmin, 512))
+                            target.append(min(meanY+8-ymin, 512))
                             target.append(class_names.index(label))
                             targets[i*4+j].append(target)
 

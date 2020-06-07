@@ -31,7 +31,6 @@ class KiDataset(data.Dataset):
             self.target_set = target[430:]  # [[[xmin, ymin, xmax, ymax, label_ind], ... ], [[xmin, ymin, xmax, ymax, label_ind], ... ]]
         print(set_name, len(self.image_set))
 
-
         self.transform = transform
 
     def __getitem__(self, index):
