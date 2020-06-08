@@ -172,7 +172,7 @@ def efficientnet_params(model_name):
     """ Map EfficientNet model name to parameter coefficients. """
     params_dict = {
         # Coefficients:   width,depth,res,dropout
-        'efficientnet-b0': (1.0, 1.0, 32, 0.2),
+        'efficientnet-b0': (1.0, 1.0, 224, 0.2),
         'efficientnet-b1': (1.0, 1.1, 240, 0.2),
         'efficientnet-b2': (1.1, 1.2, 260, 0.3),
         'efficientnet-b3': (1.2, 1.4, 300, 0.3),

@@ -6,7 +6,7 @@ import matplotlib.pyplot as plt
 # Functions to visualize bounding boxes and class labels on an image.
 # Based on https://github.com/facebookresearch/Detectron/blob/master/detectron/utils/vis.py
 
-BOX_COLOR = [(255, 0, 0), (0, 0, 0), (0, 255, 0), (0, 0, 255)]
+BOX_COLOR = [(1, 0, 0), (0, 0.5, 0), (0, 1, 0), (0, 0, 1)]
 TEXT_COLOR = (255, 255, 255)
 
 
@@ -29,6 +29,24 @@ def visualize(img, bboxes, labels):
         img, bboxes.tolist(), labels)
     # plt.figure(figsize=(12, 12))
     # plt.imshow(img)
+    return img
+
+def compare(img, bboxes, annotations):
+    for i in range(len(bboxes.tolist())):
+        x_min, y_min, x_max, y_max = bboxes.tolist()[i]
+        x_min, x_max, y_min, y_max = int(x_min), int(x_max), int(y_min), int(y_max)
+        if x_min != -1:
+            cv2.rectangle(img, (x_min, y_min), (x_max, y_max),
+                          color=(0, 0, 1), thickness=2)
+
+
+    for i in range(len(annotations.tolist())):
+        x_min, y_min, x_max, y_max, label = annotations.tolist()[i]
+        x_min, x_max, y_min, y_max = int(x_min), int(x_max), int(y_min), int(y_max)
+        if x_min != -1:
+            cv2.rectangle(img, (x_min, y_min), (x_max, y_max),
+                          color=(1, 0, 0), thickness=2)
+
     return img
 
 

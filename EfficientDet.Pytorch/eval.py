@@ -7,7 +7,7 @@ from torch.utils.data import DataLoader
 from torchvision import transforms
 import json
 
-from datasets.visual_aug import visualize
+from datasets.visual_aug import visualize, compare
 from datasets import (Augmenter, Normalizer,
                       Resizer, collater, detection_collate,
                       get_augumentation)
@@ -128,11 +128,13 @@ def _get_detections(dataset, retinanet, score_threshold=0.05, max_detections=100
 
                 #print(image_boxes)
                 #print(image_labels)
-                vis = visualize(dataset.get_original_image(index), image_boxes, image_labels)
-                if index == 0:
-                    cv2.imshow('image', vis)
-                    cv2.waitKey(0)
-                    cv2.destroyAllWindows()
+                #vis = visualize(dataset.get_original_image(index), image_boxes, image_labels)
+                print(dataset.load_annotations(index))
+                vis = compare(dataset.get_original_image(index), image_boxes, dataset.load_annotations(index))
+                #if index == 0:
+                cv2.imshow('image', vis)
+                cv2.waitKey(0)
+                cv2.destroyAllWindows()
 
                 # copy detections to all_detections
                 for label in range(dataset.num_classes()):
@@ -232,6 +234,7 @@ def evaluate(
                 else:
                     false_positives = np.append(false_positives, 1)
                     true_positives = np.append(true_positives, 0)
+        print('Label {}: {}'.format(label, scores))
 
         # no annotations -> AP for this class is 0 (is this correct?)
         if num_annotations == 0:
@@ -273,11 +276,11 @@ if __name__ == '__main__':
     train_set = parser.add_mutually_exclusive_group()
     parser.add_argument('--dataset_root', default='datasets/',
                         help='Dataset root directory path')
-    parser.add_argument('-t', '--threshold', default=0.4,
+    parser.add_argument('-t', '--threshold', default=0.3,
                         type=float, help='Visualization threshold')
-    parser.add_argument('-it', '--iou_threshold', default=0.5,
+    parser.add_argument('-it', '--iou_threshold', default=0.20,
                         type=float, help='Visualization threshold')
-    parser.add_argument('--weight', default='./saved/weights/kebnekaise/checkpoint_18.pth', type=str,
+    parser.add_argument('--weight', default='./saved/weights/kebnekaise/checkpoint_15.pth', type=str,
                         help='Checkpoint state_dict file to resume training from')
     args = parser.parse_args()
 

@@ -87,6 +87,7 @@ class EfficientDet(nn.Module):
         classification = torch.cat([out for out in outs[0]], dim=1)
         regression = torch.cat([out for out in outs[1]], dim=1)
         anchors = self.anchors(inputs)
+
         if self.is_training:
             return self.criterion(classification, regression, anchors, annotations)
         else:
@@ -112,7 +113,6 @@ class EfficientDet(nn.Module):
                 dim=1)
 
             print(nms_scores)
-            print(nms_class)
             print(transformed_anchors[0, anchors_nms_idx, :])
             return [nms_scores, nms_class, transformed_anchors[0, anchors_nms_idx, :]]
 
