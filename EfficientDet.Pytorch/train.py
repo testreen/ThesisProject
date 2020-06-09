@@ -41,7 +41,7 @@ parser.add_argument('--device', default=[0, 1], type=list,
                     help='Use CUDA to train model')
 parser.add_argument('--grad_accumulation_steps', default=1, type=int,
                     help='Number of gradient accumulation steps')
-parser.add_argument('--lr', '--learning-rate', default=0.16, type=float,
+parser.add_argument('--lr', '--learning-rate', default=1e-5, type=float,
                     help='initial learning rate')
 parser.add_argument('--momentum', default=0.9, type=float,
                     help='Momentum value for optim')
@@ -88,11 +88,11 @@ def train(train_loader, model, scheduler, optimizer, epoch, args):
             continue
         loss.backward()
         if (idx + 1) % args.grad_accumulation_steps == 0:
-            torch.nn.utils.clip_grad_norm_(model.parameters(), 0.1)
+            torch.nn.utils.clip_grad_norm_(model.parameters(), 0.001)
             optimizer.step()
             optimizer.zero_grad()
 
-        total_loss.append(loss.item())
+        total_loss.append(loss.detach().item())
         if(iteration % 1 == 0):
             print('{} iteration: training ...'.format(iteration))
             ans = {
@@ -106,7 +106,7 @@ def train(train_loader, model, scheduler, optimizer, epoch, args):
                 print('    {:15s}: {}'.format(str(key), value))
         iteration += 1
         #images = images.cpu().float()
-    scheduler.step(np.mean(total_loss))
+    scheduler.step()
     result = {
         'time': time.time() - start,
         'loss': np.mean(total_loss)
@@ -204,8 +204,9 @@ def main_worker(gpu, ngpus_per_node, args):
             model = torch.nn.DataParallel(model)
 
     # define loss function (criterion) , optimizer, scheduler
-    optimizer = optim.SGD(model.parameters(), lr=args.lr, momentum=args.momentum, weight_decay=args.weight_decay, nesterov=True)
-    scheduler = optim.lr_scheduler.CosineAnnealingLR(optimizer, args.lr)
+    optimizer = optim.AdamW(model.parameters(), lr=args.lr)
+    scheduler = optim.lr_scheduler.ReduceLROnPlateau(
+        optimizer, patience=3, verbose=True)
     cudnn.benchmark = True
 
     for epoch in range(args.start_epoch, args.num_epoch):
