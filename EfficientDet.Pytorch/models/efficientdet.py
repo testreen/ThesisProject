@@ -40,7 +40,7 @@ class EfficientDet(nn.Module):
         self.backbone = EfficientNet.from_pretrained(MODEL_MAP[network], num_classes=num_classes)
 
         self.is_training = is_training
-        self.neck = BIFPN(in_channels=self.backbone.get_list_features()[:5],
+        self.neck = BIFPN(in_channels=self.backbone.get_list_features()[1:6],
                           out_channels=W_bifpn,
                           stack=D_bifpn,
                           num_outs=5)
@@ -127,5 +127,5 @@ class EfficientDet(nn.Module):
             Directly extract features from the backbone+neck
         """
         x = self.backbone(img)
-        x = self.neck(x[:5])
+        x = self.neck(x[1:6])
         return x

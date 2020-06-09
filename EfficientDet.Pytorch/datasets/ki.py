@@ -21,8 +21,8 @@ class KiDataset(data.Dataset):
 
         # Total size 547
         if set_name == 'train':
-            self.image_set = images[:10] # 57*16 images
-            self.target_set = target[:10]  # [[[xmin, ymin, xmax, ymax, label_ind], ... ], [[xmin, ymin, xmax, ymax, label_ind], ... ]]
+            self.image_set = images[:344] # 57*16 images
+            self.target_set = target[:344]  # [[[xmin, ymin, xmax, ymax, label_ind], ... ], [[xmin, ymin, xmax, ymax, label_ind], ... ]]
         elif set_name == 'val':
             self.image_set = images[344:430] # 57*16 images
             self.target_set = target[344:430]  # [[[xmin, ymin, xmax, ymax, label_ind], ... ], [[xmin, ymin, xmax, ymax, label_ind], ... ]]

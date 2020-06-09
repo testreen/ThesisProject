@@ -105,6 +105,7 @@ def train(train_loader, model, scheduler, optimizer, epoch, args):
             for key, value in ans.items():
                 print('    {:15s}: {}'.format(str(key), value))
         iteration += 1
+        #images = images.cpu().float()
     scheduler.step(np.mean(total_loss))
     result = {
         'time': time.time() - start,
