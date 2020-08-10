@@ -18,7 +18,9 @@ def imshow(inp, title=None):
     plt.pause(0.001)  # pause a bit so that plots are updated
 
 
-# Run the model and predict label
+"""
+Evaluate and show the predictions of a trained EfficentNet model
+"""
 def visualize_model(model, dataloader, num_images=4):
     device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
     was_training = model.training

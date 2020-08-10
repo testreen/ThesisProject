@@ -19,17 +19,42 @@ class KiDataset(data.Dataset):
     def __init__(self, root="", transform=None, set_name='train'):
         images, target = parseKI(basePath=root)
 
-        # Total size 547
+        # Total size 395
         if set_name == 'train':
-            self.image_set = images[:344] # 57*16 images
-            self.target_set = target[:344]  # [[[xmin, ymin, xmax, ymax, label_ind], ... ], [[xmin, ymin, xmax, ymax, label_ind], ... ]]
+            '''
+            The count of inflammatory is: 1165
+            The count of lymphocyte is: 2219
+            The count of fibroblast and endothelial is: 4896
+            The count of epithelial is: 8133
+            '''
+            self.image_set = images[:10] # 57*16 images
+            self.target_set = target[:10]  # [[[xmin, ymin, xmax, ymax, label_ind], ... ], [[xmin, ymin, xmax, ymax, label_ind], ... ]]
         elif set_name == 'val':
-            self.image_set = images[344:430] # 57*16 images
-            self.target_set = target[344:430]  # [[[xmin, ymin, xmax, ymax, label_ind], ... ], [[xmin, ymin, xmax, ymax, label_ind], ... ]]
+            '''
+            The count of inflammatory is: 517
+            The count of lymphocyte is: 572
+            The count of fibroblast and endothelial is: 815
+            The count of epithelial is: 1470
+            '''
+            self.image_set = images[256:265] # 57*16 images
+            self.target_set = target[256:265]  # [[[xmin, ymin, xmax, ymax, label_ind], ... ], [[xmin, ymin, xmax, ymax, label_ind], ... ]]
         elif set_name == 'test':
-            self.image_set = images[430:] # 57*16 images
-            self.target_set = target[430:]  # [[[xmin, ymin, xmax, ymax, label_ind], ... ], [[xmin, ymin, xmax, ymax, label_ind], ... ]]
-        print(set_name, len(self.image_set))
+            '''
+            The count of inflammatory is: 132
+            The count of lymphocyte is: 204
+            The count of fibroblast and endothelial is: 847
+            The count of epithelial is: 2043
+            '''
+            self.image_set = images[320:] # 57*16 images
+            self.target_set = target[320:]  # [[[xmin, ymin, xmax, ymax, label_ind], ... ], [[xmin, ymin, xmax, ymax, label_ind], ... ]]
+
+        #counter = [0, 0, 0, 0]
+        #for i in range(len(self.target_set)):
+        #    for j in range(len(self.target_set[i])):
+        #        counter[self.target_set[i][j][4]] += 1
+
+        #for i in range(len(KI_CLASSES)):
+        #    print('The count of {} is: {}'.format(KI_CLASSES[i], counter[i]))
 
         self.transform = transform
 

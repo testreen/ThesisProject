@@ -3,18 +3,6 @@ import numpy as np
 import xml.etree.ElementTree as ET
 
 label_paths = [
-    'KI-Dataset/For KTH/Helena/Helena_P7/P7_HE_Default_Extended_1_1',
-    'KI-Dataset/For KTH/Helena/Helena_P7/P7_HE_Default_Extended_2_1',
-    'KI-Dataset/For KTH/Helena/Helena_P7/P7_HE_Default_Extended_2_2',
-    'KI-Dataset/For KTH/Helena/Helena_P7/P7_HE_Default_Extended_3_1',
-    'KI-Dataset/For KTH/Helena/N10/N10_1_1',
-    'KI-Dataset/For KTH/Helena/N10/N10_1_2',
-    'KI-Dataset/For KTH/Helena/N10/N10_1_3',
-    'KI-Dataset/For KTH/Helena/N10/N10_2_1',
-    'KI-Dataset/For KTH/Helena/N10/N10_1_1',
-    'KI-Dataset/For KTH/Helena/N10/N10_2_2',
-    'KI-Dataset/For KTH/Nikolce/N10_1_1',
-    'KI-Dataset/For KTH/Nikolce/N10_1_2',
     'KI-Dataset/For KTH/Rachael/Rach_P9/P9_1_1',
     'KI-Dataset/For KTH/Rachael/Rach_P9/P9_2_1',
     'KI-Dataset/For KTH/Rachael/Rach_P9/P9_2_2',
@@ -61,6 +49,18 @@ label_paths = [
     'KI-Dataset/For KTH/Rachael/Rach_P25/P25_8_2',
     'KI-Dataset/For KTH/Rachael/Rach_P28/P28_10_4',
     'KI-Dataset/For KTH/Rachael/Rach_P28/P28_10_5',
+    'KI-Dataset/For KTH/Helena/Helena_P7/P7_HE_Default_Extended_1_1',
+    'KI-Dataset/For KTH/Helena/Helena_P7/P7_HE_Default_Extended_2_1',
+    'KI-Dataset/For KTH/Helena/Helena_P7/P7_HE_Default_Extended_2_2',
+    'KI-Dataset/For KTH/Helena/Helena_P7/P7_HE_Default_Extended_3_1',
+    'KI-Dataset/For KTH/Helena/N10/N10_1_1',
+    'KI-Dataset/For KTH/Helena/N10/N10_1_2',
+    'KI-Dataset/For KTH/Helena/N10/N10_1_3',
+    'KI-Dataset/For KTH/Helena/N10/N10_2_1',
+    'KI-Dataset/For KTH/Helena/N10/N10_1_1',
+    'KI-Dataset/For KTH/Helena/N10/N10_2_2',
+    'KI-Dataset/For KTH/Nikolce/N10_1_1',
+    'KI-Dataset/For KTH/Nikolce/N10_1_2',
 ] # Len 58
 
 class_names = ['inflammatory', 'lymphocyte', 'fibroblast and endothelial',
@@ -118,23 +118,24 @@ def parseKI(basePath="", fileCount=len(label_paths)):
                         meanX = int((int(boundaries[1]) + int(boundaries[3])) / 2)
                         meanY = int((int(boundaries[2]) + int(boundaries[4])) / 2)
 
-                        meanX = max(meanX, 8)
-                        meanX = min(meanX, imarray.shape[1]-8)
+                        meanX = max(meanX, 16)
+                        meanX = min(meanX, imarray.shape[1]-16)
 
-                        meanY = max(meanY, 8)
-                        meanY = min(meanY, imarray.shape[0]-8)
+                        meanY = max(meanY, 16)
+                        meanY = min(meanY, imarray.shape[0]-16)
 
-                        if meanX > xmin and meanX <= xmax and meanY > ymin and meanY <= ymax and class_names.index(label) != 4:
+                        # Check if full box is inside image
+                        if meanX > xmin + 16 and meanX <= xmax - 16 and meanY > ymin + 16 and meanY <= ymax - 16 and class_names.index(label) != 4:
                             #print(meanX, xmin, xmax, meanY, ymin, ymax, i*4+j)
-                            target.append(max(meanX-8-xmin, 0))
-                            target.append(max(meanY-8-ymin, 0))
-                            target.append(min(meanX+8-xmin, 512))
-                            target.append(min(meanY+8-ymin, 512))
+                            target.append(max(meanX-16-xmin, 0))
+                            target.append(max(meanY-16-ymin, 0))
+                            target.append(min(meanX+16-xmin, 512))
+                            target.append(min(meanY+16-ymin, 512))
                             target.append(class_names.index(label))
                             targets[i*4+j].append(target)
 
         for i in range(16):
-            if len(targets[i]) > 0:
+            if len(targets[i]) > 10:
                 labels.append(targets[i])
                 images.append(slices[i])
 

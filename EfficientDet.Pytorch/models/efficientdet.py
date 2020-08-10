@@ -72,7 +72,7 @@ class EfficientDet(nn.Module):
                 k = k[7:]
             new_state_dict[k] = v
         checkpoint['state_dict'] = new_state_dict
-        self.backbone.load_state_dict(checkpoint['state_dict'])
+        #self.backbone.load_state_dict(checkpoint['state_dict'])
         print("=> loaded checkpoint '{}' (epoch {})"
               .format('models/model_kebnekaise.pth.tar', checkpoint['epoch']))
 
@@ -102,8 +102,7 @@ class EfficientDet(nn.Module):
                 if torch.cuda.is_available():
                     return [torch.zeros(0).cuda(), torch.zeros(0).cuda(), torch.zeros(0, 4).cuda()]
                 return [torch.zeros(0), torch.zeros(0), torch.zeros(0, 4)]
-            else:
-                print(scores_over_thresh.shape)
+
             classification = classification[:, scores_over_thresh, :]
             transformed_anchors = transformed_anchors[:, scores_over_thresh, :]
             scores = scores[:, scores_over_thresh, :]
@@ -113,7 +112,6 @@ class EfficientDet(nn.Module):
                 dim=1)
 
             print(nms_scores)
-            print(transformed_anchors[0, anchors_nms_idx, :])
             return [nms_scores, nms_class, transformed_anchors[0, anchors_nms_idx, :]]
 
     def freeze_bn(self):

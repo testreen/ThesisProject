@@ -13,19 +13,20 @@ if __name__ == '__main__':
 
     print(len(image_set))
 
-    index = 105 # Select image
-    target = target_set[index]
-    img = image_set[index]
+    for index in range(len(image_set)):
+        print(index)
+        target = target_set[index]
+        img = image_set[index]
 
-    target = np.array(target)
+        target = np.array(target)
 
-    bbox = target[:, :4]
-    labels = target[:, 4]
+        bbox = target[:, :4]
+        labels = target[:, 4]
 
-    vis = visualize_bbox(img, bbox, labels)
-    cv2.imshow('image', vis)
-    cv2.waitKey(0)
-    cv2.destroyAllWindows()
+        vis = visualize_bbox(img, bbox.tolist(), labels.tolist())
+        cv2.imshow('image', vis)
+        cv2.waitKey(0)
+        cv2.destroyAllWindows()
 
     # Test load efficientnet model
     model = EfficientNet.from_pretrained('efficientnet-b0', advprop=False, num_classes=4)

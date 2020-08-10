@@ -129,12 +129,13 @@ def _get_detections(dataset, retinanet, score_threshold=0.05, max_detections=100
                 #print(image_boxes)
                 #print(image_labels)
                 #vis = visualize(dataset.get_original_image(index), image_boxes, image_labels)
-                print(dataset.load_annotations(index))
-                vis = compare(dataset.get_original_image(index), image_boxes, dataset.load_annotations(index))
+                #print(dataset.load_annotations(index))
+                #vis = compare(dataset.get_original_image(index), image_boxes, dataset.load_annotations(index))
+                #vis = visualize(dataset.get_original_image(index), image_boxes, image_labels)
                 #if index == 0:
-                cv2.imshow('image', vis)
-                cv2.waitKey(0)
-                cv2.destroyAllWindows()
+                #cv2.imshow('image', vis)
+                #cv2.waitKey(0)
+                #cv2.destroyAllWindows()
 
                 # copy detections to all_detections
                 for label in range(dataset.num_classes()):
@@ -276,11 +277,11 @@ if __name__ == '__main__':
     train_set = parser.add_mutually_exclusive_group()
     parser.add_argument('--dataset_root', default='datasets/',
                         help='Dataset root directory path')
-    parser.add_argument('-t', '--threshold', default=0.3,
+    parser.add_argument('-t', '--threshold', default=0.4,
                         type=float, help='Visualization threshold')
-    parser.add_argument('-it', '--iou_threshold', default=0.20,
+    parser.add_argument('-it', '--iou_threshold', default=0.5,
                         type=float, help='Visualization threshold')
-    parser.add_argument('--weight', default='./saved/weights/kebnekaise/checkpoint_15.pth', type=str,
+    parser.add_argument('--weight', default='./saved/weights/kebnekaise/checkpoint_80_27-16.pth', type=str,
                         help='Checkpoint state_dict file to resume training from')
     args = parser.parse_args()
 

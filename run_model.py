@@ -32,7 +32,9 @@ class_names = ['inflammatory', 'lymphocyte', 'fibroblast and endothelial',
 shuffle = True
 k = 10  # Cross-validation splits
 
-
+'''
+Train/validate an EfficentNet model
+'''
 def run_model(loaders, split, args):
     if args.seed is not None:
         random.seed(args.seed)
@@ -84,6 +86,7 @@ def main_worker(loaders, split, gpu, ngpus, args):
         else:
             model.to("cpu")
 
+    # Class weights = (total_count - class_count) / total_count
     weights = [(25137-2017)/25138, (25137-3211)/25138, (25137-7296)/25137, (25137-12519)/25137, (25137-95)/25137]
     class_weights = torch.FloatTensor(weights)
     if torch.cuda.is_available():
@@ -237,7 +240,7 @@ def validate(val_loader, model, criterion, args):
             acc1 = accuracy(output, target, topk=(1,))
             losses.update(loss.item(), images.size(0))
             top1.update(acc1[0].item(), images.size(0))
-            
+
             C1indices = [index for index, element in enumerate(target) if element == 0]
             if len(C1indices) > 0:
                 accC1 = accuracy(output[C1indices], target[C1indices], topk=(1,))
@@ -325,7 +328,7 @@ class ProgressMeter(object):
 
 
 def adjust_learning_rate(optimizer, epoch, args):
-    """Sets the learning rate to the initial LR decayed by 10 every 30 epochs"""
+    """Sets the learning rate to the initial LR decayed by 3% every 2.4 epochs"""
     lr = args.lr * (0.97 ** (epoch // 2.4))
     for param_group in optimizer.param_groups:
         param_group['lr'] = lr

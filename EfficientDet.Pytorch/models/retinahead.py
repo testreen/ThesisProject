@@ -102,7 +102,7 @@ class RetinaHead(nn.Module):
             normal_init(m.conv, std=0.01)
         for m in self.reg_convs:
             normal_init(m.conv, std=0.01)
-        bias_cls = bias_init_with_prob(0.01)
+        bias_cls = bias_init_with_prob(0.25)
         normal_init(self.retina_cls, std=0.01, bias=bias_cls)
         normal_init(self.retina_reg, std=0.01)
 

@@ -130,4 +130,7 @@ dmypy.json
 
 .idea
 
-KI-Dataset/
+KI-Dataset/$RECYCLE.BIN/
+KI-Dataset/Digital Pathology/
+KI-Dataset/Original scan N10/
+KI-Dataset/.DS_Store

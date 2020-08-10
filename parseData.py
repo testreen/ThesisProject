@@ -66,7 +66,9 @@ label_paths = [
 class_names = ['inflammatory', 'lymphocyte', 'fibroblast and endothelial',
                'epithelial', 'apoptosis / civiatte body']
 
-
+'''
+Parse KI dataset used for EfficientNet training 
+'''
 def parseData(basePath="", fileCount=len(label_paths)):
     labels = []
     images = []
