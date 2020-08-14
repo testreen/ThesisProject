@@ -206,14 +206,14 @@ def _get_detections(dataset, retinanet, score_threshold=0.05, max_detections=100
             print('{}/{}'.format(index + 1, len(dataset)), end='\r')
 
     # Export result to Neo4j
-    #save_results(translate_boxes(all_boxes), all_labels, dataset.filename)
+    save_results(translate_boxes(all_boxes), all_labels, dataset.filename)
 
     vis = visualize(dataset.image, translate_boxes(all_boxes), all_labels)
     vis2 = compare(dataset.image, translate_boxes(all_boxes), dataset.targets)
-    #cv2.imshow('image', vis)
-    #cv2.waitKey(0)
-    #cv2.imshow('image', vis2)
-    #cv2.waitKey(0)
+    cv2.imshow('image', vis)
+    cv2.waitKey(0)
+    cv2.imshow('image', vis2)
+    cv2.waitKey(0)
     cv2.imwrite('visualize_{}.png'.format(dataset.filename),vis*255)
     cv2.imwrite('compare_{}.png'.format(dataset.filename),vis2*255)
     cv2.destroyAllWindows()
@@ -355,7 +355,7 @@ if __name__ == '__main__':
     train_set = parser.add_mutually_exclusive_group()
     parser.add_argument('--dataset_root', default='datasets/',
                         help='Dataset root directory path')
-    parser.add_argument('--filepath', default='KI-dataset/For KTH/Rachael/Rach_P19/P19_2_1',
+    parser.add_argument('--filepath', default='KI-dataset/For KTH/Helena/Helena_P7/P7_HE_Default_Extended_1_1',
                         help='Dataset root directory path')
     parser.add_argument('-t', '--threshold', default=0.25,
                         type=float, help='Visualization threshold')
@@ -392,19 +392,19 @@ if __name__ == '__main__':
     if torch.cuda.is_available():
         model = model.cuda()
 
-    #test_dataset = KiDataset(
-    #    root=args.dataset_root,
-    #    filePath=args.filepath,
-    #    transform=transforms.Compose(
-    #        [
-    #            Normalizer()]))
-    #evaluate(test_dataset, model)
+    test_dataset = KiDataset(
+        root=args.dataset_root,
+        filePath=args.filepath,
+        transform=transforms.Compose(
+            [
+                Normalizer()]))
+    evaluate(test_dataset, model)
 
-    for i in range(len(label_paths)):
-        test_dataset = KiDataset(
-            root=args.dataset_root,
-            filePath=label_paths[i],
-            transform=transforms.Compose(
-                [
-                    Normalizer()]))
-        evaluate(test_dataset, model)
+    #for i in range(len(label_paths)):
+    #    test_dataset = KiDataset(
+    #        root=args.dataset_root,
+    #        filePath=label_paths[i],
+    #        transform=transforms.Compose(
+    #            [
+    #                Normalizer()]))
+    #    evaluate(test_dataset, model)

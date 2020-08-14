@@ -1,0 +1,15 @@
+{
+    "dataset_path": 0,
+    "stats_per_batch" : 3,
+    "mode" : "train",
+    "task" : "link_prediction",
+    "agg_class" : "MaxPoolAggregator",
+    "cuda" : "False",
+    "hidden_dims" : [64],
+    "num_samples" : -1,
+    "batch_size" : 16,
+    "epochs" : 10,
+    "lr" : 5e-2,
+    "weight_decay" : 0e-3,
+    "threshold":  3.5317
+}

@@ -31,7 +31,7 @@ def save_results(boxes, labels, image_name):
 Get all cells within an area plus all their neighbors up to n hops away
 Return list of cells and adjacency matrix
 '''
-def all_cells_with_n_hops_in_area(image_name, x_min, x_max, y_min, y_max, hops=1):
+def all_cells_with_n_hops_in_area(image_name, coords, hops=1):
     uri = "bolt://localhost:7687"
     driver = GraphDatabase.driver(uri, auth=("neo4j", "123Broccoli456"))
 
@@ -42,7 +42,8 @@ def all_cells_with_n_hops_in_area(image_name, x_min, x_max, y_min, y_max, hops=1
             CALL apoc.neighbors.byhop(p, "CLOSE_TO", $hops)
             YIELD nodes as Nodes
             UNWIND Nodes as node
-            WITH collect(node)+p as NodeList
+            WITH collect(node)+collect(p) as NodeList
+            WITH apoc.coll.toSet(NodeList) as NodeList
             // For each vertices combination...
             WITH NodeList, [n IN NodeList |
                 [m IN NodeList |
@@ -57,7 +58,7 @@ def all_cells_with_n_hops_in_area(image_name, x_min, x_max, y_min, y_max, hops=1
             with AdjacencyMatrix, NodeList, range(0,size(NodeList)-1,1) AS coll_size WHERE size(AdjacencyMatrix) = size(NodeList)
             UNWIND coll_size AS idx
             RETURN NodeList[idx] as nodes, AdjacencyMatrix[idx] as AdjacencyRows
-        ''', image=image_name, xmin=x_min, xmax=x_max, ymin=y_min, ymax=y_max, hops=hops)
+        ''', image=image_name, xmin=coords[0], xmax=coords[1], ymin=coords[2], ymax=coords[3], hops=hops)
 
         cells = []
         adj = []
@@ -66,8 +67,7 @@ def all_cells_with_n_hops_in_area(image_name, x_min, x_max, y_min, y_max, hops=1
             adj.append(record['AdjacencyRows'])
 
     driver.close()
-
     return cells, adj
 
 if __name__ == '__main__':
-    all_cells_with_n_hops_in_area("P7_HE_Default_Extended_1_1", 700, 730, 630, 680, 2)
+    all_cells_with_n_hops_in_area("P7_HE_Default_Extended_1_1", (700, 730, 630, 680), 2)
