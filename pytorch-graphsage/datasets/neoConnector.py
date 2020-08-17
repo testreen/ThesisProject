@@ -48,7 +48,7 @@ def all_cells_with_n_hops_in_area(image_name, coords, hops=1):
             WITH NodeList, [n IN NodeList |
                 [m IN NodeList |
             		// ...Check for edge existence.
-                	CASE size((n)-[:CLOSE_TO]-(m))
+                	CASE size((n)-[:CLOSE_TO]->(m))
             			WHEN 0 THEN 0
             			ELSE 1
             		END

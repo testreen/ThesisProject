@@ -67,6 +67,8 @@ class KIGraphDataset(Dataset):
         coords = np.array([[cell.get('x'), cell.get('y')] for cell in cells]) # Get cell coordinates
         classes = np.array([class_map[cell.get('type')] for cell in cells]) # Get cell classes
         adj_edge = np.array(adj_to_edge(adj)) # Get neighbors on edge format
+        print(adj_edge.shape)
+        return
         adj = np.array(adj) # Get neighbors on AdjacencyMatrix format
 
         edges_all = np.array(get_intersections(points, coords, adj)) # Calculate all edges passing between cells over path
