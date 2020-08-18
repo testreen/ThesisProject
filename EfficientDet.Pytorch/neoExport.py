@@ -1,5 +1,65 @@
 from neo4j import GraphDatabase
 
+label_paths = [
+    #'KI-Dataset/For KTH/Rachael/Rach_P9/P9_1_1',
+    #'KI-Dataset/For KTH/Rachael/Rach_P9/P9_2_1',
+    #'KI-Dataset/For KTH/Rachael/Rach_P9/P9_2_2',
+    'P9_3_1',
+    #'KI-Dataset/For KTH/Rachael/Rach_P9/P9_3_2',
+    'P9_4_1',
+    #'KI-Dataset/For KTH/Rachael/Rach_P9/P9_4_2',
+    'P13_1_1',
+    'P13_1_2',
+    #'KI-Dataset/For KTH/Rachael/Rach_P13/P13_2_1',
+    'P13_2_2',
+    #'KI-Dataset/For KTH/Rachael/Rach_P19/P19_1_1',
+    #'KI-Dataset/For KTH/Rachael/Rach_P19/P19_1_2',
+    #'KI-Dataset/For KTH/Rachael/Rach_P19/P19_2_1',
+    #'KI-Dataset/For KTH/Rachael/Rach_P19/P19_2_2',
+    #'KI-Dataset/For KTH/Rachael/Rach_P19/P19_3_1',
+    #'KI-Dataset/For KTH/Rachael/Rach_P19/P19_3_2',
+    #'KI-Dataset/For KTH/Rachael/Rach_P20/P20_1_3',
+    #'KI-Dataset/For KTH/Rachael/Rach_P20/P20_1_4',
+    #'KI-Dataset/For KTH/Rachael/Rach_P20/P20_2_2',
+    #'KI-Dataset/For KTH/Rachael/Rach_P20/P20_2_3',
+    #'KI-Dataset/For KTH/Rachael/Rach_P20/P20_2_4',
+    #'KI-Dataset/For KTH/Rachael/Rach_P20/P20_3_1',
+    #'KI-Dataset/For KTH/Rachael/Rach_P20/P20_3_2',
+    #'KI-Dataset/For KTH/Rachael/Rach_P20/P20_3_3',
+    #'KI-Dataset/For KTH/Rachael/Rach_P20/P20_4_1',
+    #'KI-Dataset/For KTH/Rachael/Rach_P20/P20_4_2',
+    #'KI-Dataset/For KTH/Rachael/Rach_P20/P20_4_3',
+    #'KI-Dataset/For KTH/Rachael/Rach_P20/P20_5_1',
+    #'KI-Dataset/For KTH/Rachael/Rach_P20/P20_5_2',
+    #'KI-Dataset/For KTH/Rachael/Rach_P20/P20_6_1',
+    #'KI-Dataset/For KTH/Rachael/Rach_P20/P20_6_2',
+    #'KI-Dataset/For KTH/Rachael/Rach_P20/P20_7_1',
+    #'KI-Dataset/For KTH/Rachael/Rach_P20/P20_7_2',
+    #'KI-Dataset/For KTH/Rachael/Rach_P20/P20_8_1',
+    #'KI-Dataset/For KTH/Rachael/Rach_P20/P20_8_2',
+    #'KI-Dataset/For KTH/Rachael/Rach_P20/P20_9_1',
+    #'KI-Dataset/For KTH/Rachael/Rach_P20/P20_9_2',
+    #'KI-Dataset/For KTH/Rachael/Rach_P25/P25_2_1',
+    #'KI-Dataset/For KTH/Rachael/Rach_P25/P25_3_1',
+    #'KI-Dataset/For KTH/Rachael/Rach_P25/P25_3_2',
+    #'KI-Dataset/For KTH/Rachael/Rach_P25/P25_4_2',
+    #'KI-Dataset/For KTH/Rachael/Rach_P25/P25_5_1',
+    #'KI-Dataset/For KTH/Rachael/Rach_P25/P25_8_2',
+    #'KI-Dataset/For KTH/Rachael/Rach_P28/P28_10_4',
+    #'KI-Dataset/For KTH/Rachael/Rach_P28/P28_10_5',
+    #'KI-Dataset/For KTH/Helena/Helena_P7/P7_HE_Default_Extended_1_1',
+    'P7_HE_Default_Extended_2_1',
+    'P7_HE_Default_Extended_2_2',
+    'P7_HE_Default_Extended_3_1',
+    'N10_1_1',
+    'N10_1_2',
+    #'KI-Dataset/For KTH/Helena/N10/N10_1_3',
+    'N10_2_1',
+    'N10_2_2',
+    #'KI-Dataset/For KTH/Nikolce/N10_1_1',
+    #'KI-Dataset/For KTH/Nikolce/N10_1_2',
+] # Len 58
+
 class_names = ['inflammatory', 'lymphocyte', 'fibroblast and endothelial',
                'epithelial', 'apoptosis / civiatte body']
 
@@ -27,47 +87,32 @@ def save_results(boxes, labels, image_name):
 
     driver.close()
 
-'''
-Get all cells within an area plus all their neighbors up to n hops away
-Return list of cells and adjacency matrix
-'''
-def all_cells_with_n_hops_in_area(image_name, x_min, x_max, y_min, y_max, hops=1):
+def generate_graph(image_name):
     uri = "bolt://localhost:7687"
     driver = GraphDatabase.driver(uri, auth=("neo4j", "123Broccoli456"))
 
     with driver.session() as session:
+        print(image_name)
         result = session.run('''
             MATCH (p:Cell {image: $image})
-            WHERE p.x > $xmin AND p.x < $xmax AND p.y > $ymin AND p.y < $ymax
-            CALL apoc.neighbors.byhop(p, "CLOSE_TO", $hops)
-            YIELD nodes as Nodes
-            UNWIND Nodes as node
-            WITH collect(node)+p as NodeList
-            // For each vertices combination...
-            WITH NodeList, [n IN NodeList |
-                [m IN NodeList |
-            		// ...Check for edge existence.
-                	CASE size((n)-[:CLOSE_TO]-(m))
-            			WHEN 0 THEN 0
-            			ELSE 1
-            		END
-                ]
-            ] AS AdjacencyMatrix
-            // Unroll rows.
-            with AdjacencyMatrix, NodeList, range(0,size(NodeList)-1,1) AS coll_size WHERE size(AdjacencyMatrix) = size(NodeList)
-            UNWIND coll_size AS idx
-            RETURN NodeList[idx] as nodes, AdjacencyMatrix[idx] as AdjacencyRows
-        ''', image=image_name, xmin=x_min, xmax=x_max, ymin=y_min, ymax=y_max, hops=hops)
-
-        cells = []
-        adj = []
+            WITH {item:id(p), weights: [p.x, p.y]} as userData
+            WITH collect(userData) as data
+            CALL gds.alpha.similarity.euclidean.write({
+            	nodeProjection: '*',
+                relationshipProjection: '*',
+                data: data,
+                topK: 6,
+                similarityCutoff: 2000,
+                showComputations: true,
+                writeRelationshipType: "CLOSE_TO"
+            })
+             YIELD nodes, similarityPairs, writeRelationshipType, writeProperty, min, max, mean, stdDev, p25, p50, p75, p90, p95, p99, p999, p100
+             RETURN nodes, similarityPairs, writeRelationshipType, writeProperty, min, max, mean, p95
+        ''', image=image_name)
         for record in result:
-            cells.append(record['nodes'])
-            adj.append(record['AdjacencyRows'])
-
+            print(record)
     driver.close()
 
-    return cells, adj
-
 if __name__ == '__main__':
-    all_cells_with_n_hops_in_area("P7_HE_Default_Extended_1_1", 700, 730, 630, 680, 2)
+    for image in label_paths:
+        generate_graph(image)

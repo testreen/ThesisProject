@@ -13,18 +13,6 @@ try:
 except ImportError:
     from .neoConnector import all_cells_with_n_hops_in_area
 
-train_annotation_path = [ #Filename, Coordinates, path to annotation
-    ['P7_HE_Default_Extended_1_1', (630, 1300, 350, 1200), 'datasets/annotations/P7_annotated/P7_HE_Default_Extended_1_1.txt']
-]
-
-val_annotation_path = [ #Filename, Coordinates, path to annotation
-    ['P7_HE_Default_Extended_1_1', (1300, 1500, 1200, 1600), 'datasets/annotations/P7_annotated/P7_HE_Default_Extended_1_1.txt']
-]
-
-test_annotation_path = [ #Filename, Coordinates, path to annotation
-    ['P7_HE_Default_Extended_1_1', (1500, 1700, 1600, 2000), 'datasets/annotations/P7_annotated/P7_HE_Default_Extended_1_1.txt']
-]
-
 class_map = {'inflammatory': 0, 'lymphocyte' : 1, 'fibroblast and endothelial': 2,
                'epithelial': 3, 'apoptosis / civiatte body': 4}
 
@@ -36,8 +24,8 @@ class KIGraphDataset(Dataset):
         """
         Parameters
         ----------
-        path : str
-            Path to the dataset file. For example, CollegeMsg.txt, etc.
+        path : list
+            List with filename, coordinates and path to annotation. For example, ['P7_HE_Default_Extended_1_1', (0, 2000, 0, 2000), 'datasets/annotations/P7_annotated/P7_HE_Default_Extended_1_1.txt']
         mode : str
             One of train, val or test. Default: train.
         num_layers : int
@@ -47,31 +35,24 @@ class KIGraphDataset(Dataset):
         """
         super().__init__()
 
-        if mode == 'train':
-            self.path = train_annotation_path[path]
-        elif mode == 'val':
-            self.path = val_annotation_path[path]
-        elif mode == 'test':
-            self.path = test_annotation_path[path]
-
-
+        self.path = path
         self.mode = mode
         self.num_layers = num_layers
         self.data_split = data_split
 
         print('--------------------------------')
-        print('Reading dataset from {}'.format(path))
+        print('Reading dataset from {}'.format(self.path[0]))
 
-        cells, adj = self._read_from_db(path) # Get cells and AdjacencyMatrix
+        cells, adj = self._read_from_db(self.path) # Get cells and AdjacencyMatrix
         points = self.parse_points(self.path[2]) # Get annotation path points
         coords = np.array([[cell.get('x'), cell.get('y')] for cell in cells]) # Get cell coordinates
         classes = np.array([class_map[cell.get('type')] for cell in cells]) # Get cell classes
-        adj_edge = np.array(adj_to_edge(adj)) # Get neighbors on edge format
-        print(adj_edge.shape)
-        return
+        adj_edge = np.array(adj_to_edge(adj)) # Get neighbors on edge list format
         adj = np.array(adj) # Get neighbors on AdjacencyMatrix format
 
-        edges_all = np.array(get_intersections(points, coords, adj)) # Calculate all edges passing between cells over path
+        self.classes = classes
+
+        edges_all = np.array(get_intersections(points, coords, adj)) # Calculate all edges passing over tissue layers
 
         print('Finished reading data.')
 
@@ -80,13 +61,13 @@ class KIGraphDataset(Dataset):
 
         idxs = [floor(v*edges_all.shape[0]) for v in np.cumsum(data_split)]
 
-        edges_t, pos_examples = adj_edge, edges_all
+        edges_t, pos_examples = adj_edge, edges_all # edges_t = all neighbor edges, pos_examples = all edges passing boundary
 
         edges_t[:, :2] = np.array([vertex_id[u] for u in edges_t[:, :2].flatten()]).reshape(edges_t[:, :2].shape)
-        edges_s = np.unique(edges_t[:, :2], axis=0)
+        edges_s = np.unique(edges_t[:, :2], axis=0) # Filter duplicate edges
 
         self.n = len(vertex_id) # Count vertices
-        self.m_s, self.m_t = edges_s.shape[0], edges_t.shape[0] # Count edges
+        self.m_s= edges_s.shape[0] # Count edges
 
         adj = sp.coo_matrix((np.ones(self.m_s), (edges_s[:, 0], edges_s[:, 1])),
                             shape=(self.n,self.n),
@@ -98,42 +79,42 @@ class KIGraphDataset(Dataset):
 
         self.edges_s = edges_s # Edges between layers
         self.nbrs_s = self.adj.rows # Neighbors
-        self.features = torch.from_numpy(np.eye(self.n)*classes).float() # Cell features
 
-        self.nbrs_t = self.nbrs_s
+        # One hot encode all class labels
+        features = np.zeros((classes.size, classes.max()+1))
+        features[np.arange(classes.size),classes] = 1
+        self.features = torch.from_numpy(features).float() # Cell features
 
         print('Finished setting up graph.')
 
         print('Setting up examples.')
 
 
-        #pos_seen = set(tuple([u,v]) for (u,v) in edges_s)
-        # Symmetric.
-        #pos_seen |= set(tuple([v,u]) for (u,v) in edges_s)
         pos_examples = pos_examples[:, :2]
-        #pos_examples = np.array([row for row in pos_examples \
-        #                         if (row[0] < self.n) and
-        #                         (row[1] < self.n) and
-        #                         ((row[0], row[1]) not in pos_seen) and
-        #                         ((row[1], row[0]) not in pos_seen)])
-
         pos_examples = np.unique(pos_examples, axis=0)
 
         # Generate negative examples not in cell edges crossing path
-        num_neg_examples = pos_examples.shape[0]
         neg_examples = []
         cur = 0
         n, _choice = self.n, np.random.choice
-        neg_seen = set(tuple(e[:2]) for e in edges_all)
-        while cur < num_neg_examples:
-            u, v = _choice(n, 2, replace=False)
-            if (u, v) in neg_seen:
-                continue
-            cur += 1
-            neg_examples.append([u, v])
-        neg_examples = np.array(neg_examples, dtype=np.int64)
+        neg_seen = set(tuple(e[:2]) for e in edges_all) # Dont sample positive edges
+        adj_tuple = set(tuple(e[:2]) for e in adj_edge) # List all edges
 
-        # pos_examples, neg_examples = pos_examples[:1024], neg_examples[:1024]
+        if self.mode != 'train':    # Add all edges except positive edges if validation/test
+            for example in adj_edge:
+                if (example[0], example[1]) in neg_seen:
+                    continue
+                neg_examples.append(example)
+        else:   # Sample from adjacency edges not in positive
+            num_neg_examples = pos_examples.shape[0]
+            while cur < num_neg_examples:
+                u, v = _choice(n, 2, replace=False)
+                if (u, v) in neg_seen or (u, v) not in adj_tuple:
+                    continue
+                cur += 1
+                neg_examples.append([u, v])
+
+        neg_examples = np.array(neg_examples, dtype=np.int64)
 
         x = np.vstack((pos_examples, neg_examples))
         y = np.concatenate((np.ones(pos_examples.shape[0]),
@@ -148,14 +129,14 @@ class KIGraphDataset(Dataset):
         print('Dataset properties:')
         print('Mode: {}'.format(self.mode))
         print('Number of vertices: {}'.format(self.n))
-        print('Number of static edges: {}'.format(self.m_s))
-        print('Number of temporal edges: {}'.format(self.m_t))
+        print('Number of edges: {}'.format(self.m_s))
+        print('Number of positive/negative datapoints: {}/{}'.format(pos_examples.shape[0],neg_examples.shape[0]))
         print('Number of examples/datapoints: {}'.format(self.x.shape[0]))
         print('--------------------------------')
 
 
     def _read_from_db(self, path):
-        cells, adj = all_cells_with_n_hops_in_area(self.path[0], self.path[1], hops=2)
+        cells, adj = all_cells_with_n_hops_in_area(path[0], path[1], hops=2)
         return cells, adj
 
     def __len__(self):
@@ -240,9 +221,7 @@ class KIGraphDataset(Dataset):
         return edges, features, node_layers, mappings, rows, labels
 
     def get_dims(self):
-        return self.features.shape[0], 1
-
-        return np.array(lines, dtype=np.int64)
+        return self.features.shape[1], 1
 
     def parse_points(self, fname):
         with open(fname, 'r') as f:

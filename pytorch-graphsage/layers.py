@@ -26,7 +26,7 @@ class Aggregator(nn.Module):
         self.output_dim = output_dim
         self.device = device
 
-    def forward(self, features, nodes, mapping, rows, num_samples=25):
+    def forward(self, features, nodes, mapping, rows, num_samples=5):
         """
         Parameters
         ----------

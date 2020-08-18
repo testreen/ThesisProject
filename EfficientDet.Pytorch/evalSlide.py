@@ -14,67 +14,66 @@ from datasets import (Augmenter, Normalizer,
 from datasets.parseOneKI import KiDataset, translate_boxes
 from models.efficientdet import EfficientDet
 from utils import EFFICIENTDET, get_state_dict
-from neoExport import save_results
+from neoExport import save_results, generate_graph
 
 label_paths = [
-    'KI-Dataset/For KTH/Rachael/Rach_P9/P9_1_1',
+    #'KI-Dataset/For KTH/Rachael/Rach_P9/P9_1_1',
     'KI-Dataset/For KTH/Rachael/Rach_P9/P9_2_1',
-    'KI-Dataset/For KTH/Rachael/Rach_P9/P9_2_2',
+    #'KI-Dataset/For KTH/Rachael/Rach_P9/P9_2_2',
     'KI-Dataset/For KTH/Rachael/Rach_P9/P9_3_1',
-    'KI-Dataset/For KTH/Rachael/Rach_P9/P9_3_2',
+    #'KI-Dataset/For KTH/Rachael/Rach_P9/P9_3_2',
     'KI-Dataset/For KTH/Rachael/Rach_P9/P9_4_1',
-    'KI-Dataset/For KTH/Rachael/Rach_P9/P9_4_2',
+    #'KI-Dataset/For KTH/Rachael/Rach_P9/P9_4_2',
     'KI-Dataset/For KTH/Rachael/Rach_P13/P13_1_1',
     'KI-Dataset/For KTH/Rachael/Rach_P13/P13_1_2',
-    'KI-Dataset/For KTH/Rachael/Rach_P13/P13_2_1',
+    #'KI-Dataset/For KTH/Rachael/Rach_P13/P13_2_1',
     'KI-Dataset/For KTH/Rachael/Rach_P13/P13_2_2',
-    'KI-Dataset/For KTH/Rachael/Rach_P19/P19_1_1',
-    'KI-Dataset/For KTH/Rachael/Rach_P19/P19_1_2',
-    'KI-Dataset/For KTH/Rachael/Rach_P19/P19_2_1',
-    'KI-Dataset/For KTH/Rachael/Rach_P19/P19_2_2',
-    'KI-Dataset/For KTH/Rachael/Rach_P19/P19_3_1',
-    'KI-Dataset/For KTH/Rachael/Rach_P19/P19_3_2',
-    'KI-Dataset/For KTH/Rachael/Rach_P20/P20_1_3',
-    'KI-Dataset/For KTH/Rachael/Rach_P20/P20_1_4',
-    'KI-Dataset/For KTH/Rachael/Rach_P20/P20_2_2',
-    'KI-Dataset/For KTH/Rachael/Rach_P20/P20_2_3',
-    'KI-Dataset/For KTH/Rachael/Rach_P20/P20_2_4',
-    'KI-Dataset/For KTH/Rachael/Rach_P20/P20_3_1',
-    'KI-Dataset/For KTH/Rachael/Rach_P20/P20_3_2',
-    'KI-Dataset/For KTH/Rachael/Rach_P20/P20_3_3',
-    'KI-Dataset/For KTH/Rachael/Rach_P20/P20_4_1',
-    'KI-Dataset/For KTH/Rachael/Rach_P20/P20_4_2',
-    'KI-Dataset/For KTH/Rachael/Rach_P20/P20_4_3',
-    'KI-Dataset/For KTH/Rachael/Rach_P20/P20_5_1',
-    'KI-Dataset/For KTH/Rachael/Rach_P20/P20_5_2',
-    'KI-Dataset/For KTH/Rachael/Rach_P20/P20_6_1',
-    'KI-Dataset/For KTH/Rachael/Rach_P20/P20_6_2',
-    'KI-Dataset/For KTH/Rachael/Rach_P20/P20_7_1',
-    'KI-Dataset/For KTH/Rachael/Rach_P20/P20_7_2',
-    'KI-Dataset/For KTH/Rachael/Rach_P20/P20_8_1',
-    'KI-Dataset/For KTH/Rachael/Rach_P20/P20_8_2',
-    'KI-Dataset/For KTH/Rachael/Rach_P20/P20_9_1',
-    'KI-Dataset/For KTH/Rachael/Rach_P20/P20_9_2',
-    'KI-Dataset/For KTH/Rachael/Rach_P25/P25_2_1',
-    'KI-Dataset/For KTH/Rachael/Rach_P25/P25_3_1',
-    'KI-Dataset/For KTH/Rachael/Rach_P25/P25_3_2',
-    'KI-Dataset/For KTH/Rachael/Rach_P25/P25_4_2',
-    'KI-Dataset/For KTH/Rachael/Rach_P25/P25_5_1',
-    'KI-Dataset/For KTH/Rachael/Rach_P25/P25_8_2',
-    'KI-Dataset/For KTH/Rachael/Rach_P28/P28_10_4',
-    'KI-Dataset/For KTH/Rachael/Rach_P28/P28_10_5',
-    'KI-Dataset/For KTH/Helena/Helena_P7/P7_HE_Default_Extended_1_1',
+    #'KI-Dataset/For KTH/Rachael/Rach_P19/P19_1_1',
+    #'KI-Dataset/For KTH/Rachael/Rach_P19/P19_1_2',
+    #'KI-Dataset/For KTH/Rachael/Rach_P19/P19_2_1',
+    #'KI-Dataset/For KTH/Rachael/Rach_P19/P19_2_2',
+    #'KI-Dataset/For KTH/Rachael/Rach_P19/P19_3_1',
+    #'KI-Dataset/For KTH/Rachael/Rach_P19/P19_3_2',
+    #'KI-Dataset/For KTH/Rachael/Rach_P20/P20_1_3',
+    #'KI-Dataset/For KTH/Rachael/Rach_P20/P20_1_4',
+    #'KI-Dataset/For KTH/Rachael/Rach_P20/P20_2_2',
+    #'KI-Dataset/For KTH/Rachael/Rach_P20/P20_2_3',
+    #'KI-Dataset/For KTH/Rachael/Rach_P20/P20_2_4',
+    #'KI-Dataset/For KTH/Rachael/Rach_P20/P20_3_1',
+    #'KI-Dataset/For KTH/Rachael/Rach_P20/P20_3_2',
+    #'KI-Dataset/For KTH/Rachael/Rach_P20/P20_3_3',
+    #'KI-Dataset/For KTH/Rachael/Rach_P20/P20_4_1',
+    #'KI-Dataset/For KTH/Rachael/Rach_P20/P20_4_2',
+    #'KI-Dataset/For KTH/Rachael/Rach_P20/P20_4_3',
+    #'KI-Dataset/For KTH/Rachael/Rach_P20/P20_5_1',
+    #'KI-Dataset/For KTH/Rachael/Rach_P20/P20_5_2',
+    #'KI-Dataset/For KTH/Rachael/Rach_P20/P20_6_1',
+    #'KI-Dataset/For KTH/Rachael/Rach_P20/P20_6_2',
+    #'KI-Dataset/For KTH/Rachael/Rach_P20/P20_7_1',
+    #'KI-Dataset/For KTH/Rachael/Rach_P20/P20_7_2',
+    #'KI-Dataset/For KTH/Rachael/Rach_P20/P20_8_1',
+    #'KI-Dataset/For KTH/Rachael/Rach_P20/P20_8_2',
+    #'KI-Dataset/For KTH/Rachael/Rach_P20/P20_9_1',
+    #'KI-Dataset/For KTH/Rachael/Rach_P20/P20_9_2',
+    #'KI-Dataset/For KTH/Rachael/Rach_P25/P25_2_1',
+    #'KI-Dataset/For KTH/Rachael/Rach_P25/P25_3_1',
+    #'KI-Dataset/For KTH/Rachael/Rach_P25/P25_3_2',
+    #'KI-Dataset/For KTH/Rachael/Rach_P25/P25_4_2',
+    #'KI-Dataset/For KTH/Rachael/Rach_P25/P25_5_1',
+    #'KI-Dataset/For KTH/Rachael/Rach_P25/P25_8_2',
+    #'KI-Dataset/For KTH/Rachael/Rach_P28/P28_10_4',
+    #'KI-Dataset/For KTH/Rachael/Rach_P28/P28_10_5',
+    #'KI-Dataset/For KTH/Helena/Helena_P7/P7_HE_Default_Extended_1_1',
     'KI-Dataset/For KTH/Helena/Helena_P7/P7_HE_Default_Extended_2_1',
     'KI-Dataset/For KTH/Helena/Helena_P7/P7_HE_Default_Extended_2_2',
     'KI-Dataset/For KTH/Helena/Helena_P7/P7_HE_Default_Extended_3_1',
     'KI-Dataset/For KTH/Helena/N10/N10_1_1',
     'KI-Dataset/For KTH/Helena/N10/N10_1_2',
-    'KI-Dataset/For KTH/Helena/N10/N10_1_3',
+    #'KI-Dataset/For KTH/Helena/N10/N10_1_3',
     'KI-Dataset/For KTH/Helena/N10/N10_2_1',
-    'KI-Dataset/For KTH/Helena/N10/N10_1_1',
     'KI-Dataset/For KTH/Helena/N10/N10_2_2',
-    'KI-Dataset/For KTH/Nikolce/N10_1_1',
-    'KI-Dataset/For KTH/Nikolce/N10_1_2',
+    #'KI-Dataset/For KTH/Nikolce/N10_1_1',
+    #'KI-Dataset/For KTH/Nikolce/N10_1_2',
 ] # Len 58
 
 def compute_overlap(a, b):
@@ -205,18 +204,20 @@ def _get_detections(dataset, retinanet, score_threshold=0.05, max_detections=100
 
             print('{}/{}'.format(index + 1, len(dataset)), end='\r')
 
-    # Export result to Neo4j
+    # Export result to Neo4j and generate neighbors
     save_results(translate_boxes(all_boxes), all_labels, dataset.filename)
+    generate_graph(dataset.filename)
 
-    vis = visualize(dataset.image, translate_boxes(all_boxes), all_labels)
-    vis2 = compare(dataset.image, translate_boxes(all_boxes), dataset.targets)
-    cv2.imshow('image', vis)
-    cv2.waitKey(0)
-    cv2.imshow('image', vis2)
-    cv2.waitKey(0)
-    cv2.imwrite('visualize_{}.png'.format(dataset.filename),vis*255)
-    cv2.imwrite('compare_{}.png'.format(dataset.filename),vis2*255)
-    cv2.destroyAllWindows()
+    # Visualize results and save images
+    #vis = visualize(dataset.image, translate_boxes(all_boxes), all_labels)
+    #vis2 = compare(dataset.image, translate_boxes(all_boxes), dataset.targets)
+    #cv2.imshow('image', vis)
+    #cv2.waitKey(0)
+    #cv2.imshow('image', vis2)
+    #cv2.waitKey(0)
+    #cv2.imwrite('visualize_{}.png'.format(dataset.filename),vis*255)
+    #cv2.imwrite('compare_{}.png'.format(dataset.filename),vis2*255)
+    #cv2.destroyAllWindows()
 
 
     return all_detections
@@ -392,19 +393,19 @@ if __name__ == '__main__':
     if torch.cuda.is_available():
         model = model.cuda()
 
-    test_dataset = KiDataset(
-        root=args.dataset_root,
-        filePath=args.filepath,
-        transform=transforms.Compose(
-            [
-                Normalizer()]))
-    evaluate(test_dataset, model)
+    #test_dataset = KiDataset(
+    #    root=args.dataset_root,
+    #    filePath=args.filepath,
+    #    transform=transforms.Compose(
+    #        [
+    #            Normalizer()]))
+    #evaluate(test_dataset, model)
 
-    #for i in range(len(label_paths)):
-    #    test_dataset = KiDataset(
-    #        root=args.dataset_root,
-    #        filePath=label_paths[i],
-    #        transform=transforms.Compose(
-    #            [
-    #                Normalizer()]))
-    #    evaluate(test_dataset, model)
+    for i in range(len(label_paths)):
+        test_dataset = KiDataset(
+            root=args.dataset_root,
+            filePath=label_paths[i],
+            transform=transforms.Compose(
+                [
+                    Normalizer()]))
+        evaluate(test_dataset, model)

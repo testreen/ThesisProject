@@ -10,6 +10,40 @@ from datasets import link_prediction
 from layers import MeanAggregator, LSTMAggregator, MaxPoolAggregator, MeanPoolAggregator
 import models
 
+'''
+"P9_2_1"
+"P9_1_1"
+"P9_3_1"
+"P9_4_1"
+"N10_1_1"
+"N10_1_2"
+"N10_2_1"
+"N10_2_2"
+'''
+
+train_annotation_path = [ #Filename, (xmin, xmax, ymin, ymax), path to annotation
+    ['P9_1_1', (0, 2000, 0, 2000), 'datasets/annotations/P9_annotated/P9_1_1_annotated.txt'],
+    ['P9_2_1', (0, 2000, 0, 2000), 'datasets/annotations/P9_annotated/P9_2_1_annotated.txt'],
+    ['P9_3_1', (0, 2000, 0, 2000), 'datasets/annotations/P9_annotated/P9_3_1_annotated.txt'],
+    ['P9_4_1', (0, 2000, 0, 2000), 'datasets/annotations/P9_annotated/P9_4_1_annotated.txt'],
+    ['N10_1_1', (0, 2000, 0, 2000), 'datasets/annotations/N10_annotated/N10_1_1_annotated.txt'],
+    ['N10_1_2', (0, 2000, 0, 2000), 'datasets/annotations/N10_annotated/N10_1_2_annotated.txt'],
+    ['N10_2_1', (0, 2000, 0, 2000), 'datasets/annotations/N10_annotated/N10_2_1_annotated.txt'],
+    ['N10_2_2', (0, 2000, 0, 2000), 'datasets/annotations/N10_annotated/N10_2_2_annotated.txt'],
+]
+
+val_annotation_path = [ #Filename, Coordinates, path to annotation
+    ['P7_HE_Default_Extended_1_1', (0, 2000, 0, 2000), 'datasets/annotations/P7_annotated/P7_HE_Default_Extended_1_1.txt'],
+    ['P7_HE_Default_Extended_2_1', (0, 2000, 0, 2000), 'datasets/annotations/P7_annotated/P7_HE_Default_Extended_2_1.txt'],
+    ['P7_HE_Default_Extended_2_2', (0, 2000, 0, 2000), 'datasets/annotations/P7_annotated/P7_HE_Default_Extended_2_2.txt'],
+    ['P7_HE_Default_Extended_3_1', (0, 2000, 0, 2000), 'datasets/annotations/P7_annotated/P7_HE_Default_Extended_3_1.txt'],
+]
+
+test_annotation_path = [ #Filename, Coordinates, path to annotation
+    ['P13_1_1', (0, 2000, 0, 2000), 'datasets/annotations/P13_annotated/P13_1_1_annotated.txt'],
+    ['P13_2_2', (0, 2000, 0, 2000), 'datasets/annotations/P13_annotated/P13_2_2_annotated.txt']
+]
+
 def get_agg_class(agg_class):
     """
     Parameters
@@ -50,11 +84,25 @@ def get_dataset(args):
     dataset : torch.utils.data.Dataset
         The dataset.
     """
-    path, mode, num_layers = args
-    class_attr = getattr(importlib.import_module('datasets.link_prediction'), 'KIGraphDataset')
-    dataset = class_attr(path, mode, num_layers)
+    datasets = []
+    mode, num_layers = args
+    if mode == 'train':
+        for path in train_annotation_path:
+            class_attr = getattr(importlib.import_module('datasets.link_prediction'), 'KIGraphDataset')
+            dataset = class_attr(path, mode, num_layers)
+            datasets.append(dataset)
+    elif mode == 'val':
+        for path in val_annotation_path:
+            class_attr = getattr(importlib.import_module('datasets.link_prediction'), 'KIGraphDataset')
+            dataset = class_attr(path, mode, num_layers)
+            datasets.append(dataset)
+    elif mode == 'test':
+        for path in test_annotation_path:
+            class_attr = getattr(importlib.import_module('datasets.link_prediction'), 'KIGraphDataset')
+            dataset = class_attr(path, mode, num_layers)
+            datasets.append(dataset)
 
-    return dataset
+    return datasets
 
 def get_fname(config):
     """
@@ -115,7 +163,7 @@ def parse_args():
                         help='dropout out, currently only for GCN, default: 0.5')
     parser.add_argument('--hidden_dims', type=int, nargs="*",
                         help='dimensions of hidden layers, length should be equal to num_layers, specify through config.json')
-    parser.add_argument('--num_samples', type=int, default=-1,
+    parser.add_argument('--num_samples', type=int, default=5,
                         help='number of neighbors to sample, default=-1')
 
     parser.add_argument('--batch_size', type=int, default=32,
