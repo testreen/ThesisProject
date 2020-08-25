@@ -6,6 +6,13 @@ import torch
 from torch.utils.data import DataLoader
 from torchvision import transforms
 import json
+from collections import OrderedDict
+
+import PIL
+from PIL import Image
+
+
+from efficientnet_pytorch import EfficientNet
 
 from datasets.visual_aug import visualize, compare
 from datasets import (Augmenter, Normalizer,
@@ -17,14 +24,14 @@ from utils import EFFICIENTDET, get_state_dict
 from neoExport import save_results, generate_graph
 
 label_paths = [
-    #'KI-Dataset/For KTH/Rachael/Rach_P9/P9_1_1',
+    'KI-Dataset/For KTH/Rachael/Rach_P9/P9_1_1',
     'KI-Dataset/For KTH/Rachael/Rach_P9/P9_2_1',
     #'KI-Dataset/For KTH/Rachael/Rach_P9/P9_2_2',
     'KI-Dataset/For KTH/Rachael/Rach_P9/P9_3_1',
     #'KI-Dataset/For KTH/Rachael/Rach_P9/P9_3_2',
     'KI-Dataset/For KTH/Rachael/Rach_P9/P9_4_1',
     #'KI-Dataset/For KTH/Rachael/Rach_P9/P9_4_2',
-    'KI-Dataset/For KTH/Rachael/Rach_P13/P13_1_1',
+    #'KI-Dataset/For KTH/Rachael/Rach_P13/P13_1_1',
     'KI-Dataset/For KTH/Rachael/Rach_P13/P13_1_2',
     #'KI-Dataset/For KTH/Rachael/Rach_P13/P13_2_1',
     'KI-Dataset/For KTH/Rachael/Rach_P13/P13_2_2',
@@ -63,17 +70,29 @@ label_paths = [
     #'KI-Dataset/For KTH/Rachael/Rach_P25/P25_8_2',
     #'KI-Dataset/For KTH/Rachael/Rach_P28/P28_10_4',
     #'KI-Dataset/For KTH/Rachael/Rach_P28/P28_10_5',
-    #'KI-Dataset/For KTH/Helena/Helena_P7/P7_HE_Default_Extended_1_1',
+    'KI-Dataset/For KTH/Helena/Helena_P7/P7_HE_Default_Extended_1_1',
     'KI-Dataset/For KTH/Helena/Helena_P7/P7_HE_Default_Extended_2_1',
     'KI-Dataset/For KTH/Helena/Helena_P7/P7_HE_Default_Extended_2_2',
     'KI-Dataset/For KTH/Helena/Helena_P7/P7_HE_Default_Extended_3_1',
+    'KI-Dataset/For KTH/Helena/Helena_P7/P7_HE_Default_Extended_3_2',
+    'KI-Dataset/For KTH/Helena/Helena_P7/P7_HE_Default_Extended_4_2',
+    'KI-Dataset/For KTH/Helena/Helena_P7/P7_HE_Default_Extended_5_2',
     'KI-Dataset/For KTH/Helena/N10/N10_1_1',
     'KI-Dataset/For KTH/Helena/N10/N10_1_2',
-    #'KI-Dataset/For KTH/Helena/N10/N10_1_3',
     'KI-Dataset/For KTH/Helena/N10/N10_2_1',
     'KI-Dataset/For KTH/Helena/N10/N10_2_2',
-    #'KI-Dataset/For KTH/Nikolce/N10_1_1',
-    #'KI-Dataset/For KTH/Nikolce/N10_1_2',
+    'KI-Dataset/For KTH/Helena/N10/N10_3_1',
+    'KI-Dataset/For KTH/Helena/N10/N10_3_2',
+    'KI-Dataset/For KTH/Helena/N10/N10_4_1',
+    'KI-Dataset/For KTH/Helena/N10/N10_4_2',
+    'KI-Dataset/For KTH/Helena/N10/N10_5_1',
+    'KI-Dataset/For KTH/Helena/N10/N10_5_2',
+    'KI-Dataset/For KTH/Helena/N10/N10_6_2',
+    'KI-Dataset/For KTH/Helena/N10/N10_7_2',
+    'KI-Dataset/For KTH/Helena/N10/N10_7_3',
+    'KI-Dataset/For KTH/Helena/N10/N10_7_4',
+    'KI-Dataset/For KTH/Helena/N10/N10_8_2',
+    'KI-Dataset/For KTH/Helena/N10/N10_8_3',
 ] # Len 58
 
 def compute_overlap(a, b):
@@ -133,7 +152,7 @@ def _compute_ap(recall, precision):
     return ap
 
 
-def _get_detections(dataset, retinanet, score_threshold=0.05, max_detections=1000, save_path=None):
+def _get_detections(dataset, retinanet, effNet, score_threshold=0.05, max_detections=1000, save_path=None, eval_threshold=0.25):
     """ Get the detections from the retinanet using the generator.
     The result is a list of lists such that the size is:
         all_detections[num_images][num_classes] = detections[num_detections, 4 + num_classes]
@@ -148,14 +167,28 @@ def _get_detections(dataset, retinanet, score_threshold=0.05, max_detections=100
     """
     all_detections = [[None for i in range(
         dataset.num_classes())] for j in range(len(dataset))]
-
     retinanet.eval()
+    effNet.eval()
+
 
     all_boxes = []
     all_labels = []
+    all_label_scores = []
+
+
+    # Efficientnet
+    normalize = transforms.Normalize(mean=[0.72482513, 0.59128926, 0.76370454],
+                                     std=[0.18745105, 0.2514997,  0.15264913])
+    image_size = 32*7
+    val_tsfm = transforms.Compose([
+        transforms.ToPILImage(),
+        transforms.Resize(image_size, interpolation=PIL.Image.BICUBIC),
+        transforms.CenterCrop(image_size),
+        transforms.ToTensor(),
+        normalize,
+    ])
 
     with torch.no_grad():
-
         for index in range(len(dataset)):
             data = dataset[index]
 
@@ -163,39 +196,77 @@ def _get_detections(dataset, retinanet, score_threshold=0.05, max_detections=100
             data['img'] = torch.from_numpy(data['img'])
             #print(data['img'])
             if torch.cuda.is_available():
-                scores, labels, boxes = retinanet(data['img'].permute(
+                scores, labels, boxes, all_scores = retinanet(data['img'].permute(
                     2, 0, 1).cuda().float().unsqueeze(dim=0))
             else:
-                scores, labels, boxes = retinanet(data['img'].permute(
+                scores, labels, boxes, all_scores = retinanet(data['img'].permute(
                     2, 0, 1).float().unsqueeze(dim=0))
             scores = scores.cpu().numpy()
             labels = labels.cpu().numpy()
             boxes = boxes.cpu().numpy()
-
+            all_scores = all_scores.cpu().numpy()
 
             # select indices which have a score above the threshold
             indices = np.where(scores > score_threshold)[0]
-            if indices.shape[0] > 0:
+            eval_indices = np.where((scores > eval_threshold) & (scores < score_threshold))[0]
+            if indices.shape[0] > 0 or eval_indices.shape[0] > 0:
                 # select those scores
-                scores = scores[indices]
+                cert_scores = scores[indices]
 
                 # find the order with which to sort the scores
-                scores_sort = np.argsort(-scores)[:max_detections]
+                scores_sort = np.argsort(-cert_scores)[:max_detections]
 
                 # select detections
                 image_boxes = boxes[indices[scores_sort], :]
-                image_scores = scores[scores_sort]
+                image_scores = cert_scores[scores_sort]
                 image_labels = labels[indices[scores_sort]]
+                image_label_scores = all_scores[indices[scores_sort], :]
                 image_detections = np.concatenate([image_boxes, np.expand_dims(
                     image_scores, axis=1), np.expand_dims(image_labels, axis=1)], axis=1)
 
-                all_boxes.append(image_boxes.tolist())
-                all_labels.extend(image_labels.tolist())
 
+
+
+                # run EfficientNet to decide uncertain scores
+                img = data['img'].cpu().numpy()
+                eval_boxes = boxes[eval_indices, :]
+                cell_imgs = np.zeros((eval_boxes.shape[0], 32, 32, 3))
+
+                for i in range(eval_boxes.shape[0]):
+                    xmin = int(min(max((eval_boxes[i][0]+eval_boxes[i][2])/2-16, 512-32),0))
+                    xmax = int(min(max((eval_boxes[i][0]+eval_boxes[i][2])/2+16, 512),32))
+                    ymin = int(min(max((eval_boxes[i][1]+eval_boxes[i][3])/2-16, 512-32),0))
+                    ymax = int(min(max((eval_boxes[i][1]+eval_boxes[i][3])/2+16, 512),32))
+                    cell_imgs[i,:,:,:] = img[xmin:xmax, ymin:ymax, :]
+
+                tensor_train_x = torch.from_numpy(cell_imgs).float().to('cpu')
+                tensor_train_x = tensor_train_x.permute(0, 3, 1, 2)
+                input_tensor = torch.empty(eval_boxes.shape[0], 3, image_size, image_size)
+                for i in range(tensor_train_x.size(0)):
+                    input_tensor[i,:,:,:] = val_tsfm(tensor_train_x[i,:,:,:])
+
+                out = effNet(input_tensor)
+                m = torch.nn.Sigmoid()
+                out = m(out)
+
+                eval_scores = out.cpu().numpy()
+                eval_label_scores = eval_scores
+
+                eval_labels = np.argmax(eval_scores, axis=1)
+                eval_scores = np.amax(eval_scores, axis=1)
+                eval_detections = np.concatenate([eval_boxes, np.expand_dims(
+                    eval_scores, axis=1), np.expand_dims(eval_labels, axis=1)], axis=1)
+
+
+                all_boxes.append(np.vstack((image_boxes, eval_boxes)).tolist())
+                all_labels.extend(image_labels.tolist())
+                all_labels.extend(eval_labels.tolist())
+                all_label_scores.extend(np.vstack((image_label_scores, eval_label_scores)).tolist())
 
                 # copy detections to all_detections
                 for label in range(dataset.num_classes()):
-                    all_detections[index][label] = image_detections[image_detections[:, -1] == label, :-1]
+                    all_detections[index][label] = np.vstack((eval_detections[eval_detections[:, -1] == label, :-1], image_detections[image_detections[:, -1] == label, :-1]))
+
             else:
                 # copy detections to all_detections
                 all_boxes.append([])
@@ -205,16 +276,16 @@ def _get_detections(dataset, retinanet, score_threshold=0.05, max_detections=100
             print('{}/{}'.format(index + 1, len(dataset)), end='\r')
 
     # Export result to Neo4j and generate neighbors
-    save_results(translate_boxes(all_boxes), all_labels, dataset.filename)
-    generate_graph(dataset.filename)
+    #save_results(translate_boxes(all_boxes), all_labels, dataset.filename+"_prob", all_label_scores)
+    #generate_graph(dataset.filename+"_prob")
 
     # Visualize results and save images
-    #vis = visualize(dataset.image, translate_boxes(all_boxes), all_labels)
-    #vis2 = compare(dataset.image, translate_boxes(all_boxes), dataset.targets)
-    #cv2.imshow('image', vis)
-    #cv2.waitKey(0)
-    #cv2.imshow('image', vis2)
-    #cv2.waitKey(0)
+    vis = visualize(dataset.image, translate_boxes(all_boxes), all_labels)
+    vis2 = compare(dataset.image, translate_boxes(all_boxes), dataset.targets)
+    cv2.imshow('image', vis)
+    cv2.waitKey(0)
+    cv2.imshow('image', vis2)
+    cv2.waitKey(0)
     #cv2.imwrite('visualize_{}.png'.format(dataset.filename),vis*255)
     #cv2.imwrite('compare_{}.png'.format(dataset.filename),vis2*255)
     #cv2.destroyAllWindows()
@@ -256,10 +327,12 @@ def _get_annotations(generator):
 def evaluate(
     generator,
     retinanet,
+    effNet,
     iou_threshold=0.5,
-    score_threshold=0.05,
+    score_threshold=0.5,
     max_detections=500,
-    save_path=None
+    save_path=None,
+    eval_threshold=0.25
 ):
     """ Evaluate a given dataset using a given retinanet.
     # Arguments
@@ -276,7 +349,7 @@ def evaluate(
     # gather all detections and annotations
 
     all_detections = _get_detections(
-        generator, retinanet, score_threshold=score_threshold, max_detections=max_detections, save_path=save_path)
+        generator, retinanet, effNet, score_threshold=score_threshold, max_detections=max_detections, save_path=save_path, eval_threshold=eval_threshold)
     all_annotations = _get_annotations(generator)
 
     average_precisions = {}
@@ -313,7 +386,7 @@ def evaluate(
                 else:
                     false_positives = np.append(false_positives, 1)
                     true_positives = np.append(true_positives, 0)
-        print('Label {}: {}'.format(label, scores))
+        #print('Label {}: {}'.format(label, scores))
 
         # no annotations -> AP for this class is 0 (is this correct?)
         if num_annotations == 0:
@@ -356,11 +429,11 @@ if __name__ == '__main__':
     train_set = parser.add_mutually_exclusive_group()
     parser.add_argument('--dataset_root', default='datasets/',
                         help='Dataset root directory path')
-    parser.add_argument('--filepath', default='KI-dataset/For KTH/Helena/Helena_P7/P7_HE_Default_Extended_1_1',
+    parser.add_argument('--filepath', default='KI-dataset/For KTH/Helena/N10/N10_1_2',
                         help='Dataset root directory path')
     parser.add_argument('-t', '--threshold', default=0.25,
                         type=float, help='Visualization threshold')
-    parser.add_argument('-it', '--iou_threshold', default=0.35,
+    parser.add_argument('-it', '--iou_threshold', default=0.5,
                         type=float, help='Visualization threshold')
     parser.add_argument('--weight', default='./saved/weights/kebnekaise/checkpoint_195.pth', type=str,
                         help='Checkpoint state_dict file to resume training from')
@@ -390,17 +463,31 @@ if __name__ == '__main__':
             threshold=args.threshold,
             iou_threshold=args.iou_threshold)
         model.load_state_dict(checkpoint['state_dict'])
+
+
+        effNet = EfficientNet.from_pretrained('efficientnet-b0', advprop=False, num_classes=4)
+        checkpoint = torch.load('./saved/effNetCheckpoint.pth.tar', map_location=torch.device('cpu'))
+        state_dict = checkpoint['state_dict']
+        new_state_dict = OrderedDict()
+        for k, v in state_dict.items():
+            if k.startswith('module.'):
+                k = k[7:]
+            new_state_dict[k] = v
+        checkpoint['state_dict'] = new_state_dict
+        effNet.load_state_dict(new_state_dict)
+
     if torch.cuda.is_available():
         model = model.cuda()
 
-    #test_dataset = KiDataset(
-    #    root=args.dataset_root,
-    #    filePath=args.filepath,
-    #    transform=transforms.Compose(
-    #        [
-    #            Normalizer()]))
-    #evaluate(test_dataset, model)
+    test_dataset = KiDataset(
+        root=args.dataset_root,
+        filePath=args.filepath,
+        transform=transforms.Compose(
+            [
+                Normalizer()]))
+    evaluate(test_dataset, model, effNet)
 
+    '''
     for i in range(len(label_paths)):
         test_dataset = KiDataset(
             root=args.dataset_root,
@@ -408,4 +495,5 @@ if __name__ == '__main__':
             transform=transforms.Compose(
                 [
                     Normalizer()]))
-        evaluate(test_dataset, model)
+        evaluate(test_dataset, model, effNet)
+    '''

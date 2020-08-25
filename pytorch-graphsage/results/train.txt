@@ -1,0 +1,144 @@
+Config: graphsage_agg_class_MaxPoolAggregator_hidden_dims_20_num_samples_6_batch_size_40_epochs_30_lr_0.0001
+
+Training stats:
+Threshold: 0.5864, accuracy: 0.8137
+Classification report
+               precision    recall  f1-score   support
+
+         0.0       0.81      0.81      0.81     41863
+         1.0       0.82      0.81      0.82     43283
+
+    accuracy                           0.81     85146
+   macro avg       0.81      0.81      0.81     85146
+weighted avg       0.81      0.81      0.81     85146
+
+
+Validation stats:
+Loss 0.6635, accuracy 0.6562
+ROC-AUC score: 0.7054
+Classification report
+               precision    recall  f1-score   support
+
+         0.0       0.62      0.77      0.69     13339
+         1.0       0.71      0.55      0.62     13749
+
+    accuracy                           0.66     27088
+   macro avg       0.67      0.66      0.65     27088
+weighted avg       0.67      0.66      0.65     27088
+
+Test stats with threshold = 0.5864
+Loss 0.8868, accuracy 0.7962
+ROC-AUC score: 0.8290
+Classification report
+               precision    recall  f1-score   support
+
+         0.0       0.98      0.80      0.88      8757
+         1.0       0.19      0.78      0.30       525
+
+    accuracy                           0.80      9282
+   macro avg       0.59      0.79      0.59      9282
+weighted avg       0.94      0.80      0.85      9282
+
+Test stats with threshold = 0.3
+Loss 0.8886, accuracy 0.6936
+ROC-AUC score: 0.8277
+Classification report
+               precision    recall  f1-score   support
+
+         0.0       0.99      0.68      0.81      8757
+         1.0       0.14      0.86      0.24       525
+
+    accuracy                           0.69      9282
+   macro avg       0.56      0.77      0.52      9282
+weighted avg       0.94      0.69      0.78      9282
+
+Test stats with threshold = 0.8
+Loss 0.8906, accuracy 0.8214
+ROC-AUC score: 0.8214
+Classification report
+               precision    recall  f1-score   support
+
+         0.0       0.98      0.83      0.90      8757
+         1.0       0.20      0.73      0.32       525
+
+    accuracy                           0.82      9282
+   macro avg       0.59      0.78      0.61      9282
+weighted avg       0.94      0.82      0.86      9282
+
+Test stats with threshold = 1.0
+Loss 0.8923, accuracy 0.8325
+ROC-AUC score: 0.8215
+Classification report
+               precision    recall  f1-score   support
+
+         0.0       0.98      0.84      0.90      8757
+         1.0       0.21      0.69      0.32       525
+
+    accuracy                           0.83      9282
+   macro avg       0.59      0.76      0.61      9282
+weighted avg       0.93      0.83      0.87      9282
+
+Test stats with threshold = 1.2
+Loss 0.8912, accuracy 0.8493
+ROC-AUC score: 0.8185
+Classification report
+               precision    recall  f1-score   support
+
+         0.0       0.98      0.86      0.92      8757
+         1.0       0.22      0.66      0.33       525
+
+    accuracy                           0.85      9282
+   macro avg       0.60      0.76      0.62      9282
+weighted avg       0.93      0.85      0.88      9282
+
+Test stats with threshold = 1.4
+Loss 0.8906, accuracy 0.8794
+ROC-AUC score: 0.8315
+Classification report
+               precision    recall  f1-score   support
+
+         0.0       0.98      0.89      0.93      8757
+         1.0       0.26      0.63      0.37       525
+
+    accuracy                           0.88      9282
+   macro avg       0.62      0.76      0.65      9282
+weighted avg       0.94      0.88      0.90      9282
+
+Test stats with threshold = 1.6
+Loss 0.8938, accuracy 0.8927
+ROC-AUC score: 0.8197
+Classification report
+               precision    recall  f1-score   support
+
+         0.0       0.97      0.92      0.94      8757
+         1.0       0.26      0.47      0.33       525
+
+    accuracy                           0.89      9282
+   macro avg       0.61      0.69      0.64      9282
+weighted avg       0.93      0.89      0.91      9282
+
+Test stats with threshold = 1.8
+Loss 0.8910, accuracy 0.9051
+ROC-AUC score: 0.8244
+Classification report
+               precision    recall  f1-score   support
+
+         0.0       0.96      0.94      0.95      8757
+         1.0       0.26      0.36      0.30       525
+
+    accuracy                           0.91      9282
+   macro avg       0.61      0.65      0.62      9282
+weighted avg       0.92      0.91      0.91      9282
+
+Test stats with threshold = 2.0
+Loss 0.8894, accuracy 0.9156
+ROC-AUC score: 0.8212
+Classification report
+               precision    recall  f1-score   support
+
+         0.0       0.96      0.95      0.96      8757
+         1.0       0.28      0.31      0.29       525
+
+    accuracy                           0.92      9282
+   macro avg       0.62      0.63      0.62      9282
+weighted avg       0.92      0.92      0.92      9282

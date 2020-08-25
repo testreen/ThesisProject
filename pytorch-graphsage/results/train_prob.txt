@@ -1,0 +1,54 @@
+Config: graphsage_agg_class_MaxPoolAggregator_hidden_dims_20_num_samples_10_batch_size_40_epochs_30_lr_0.001_weight_decay_0.0001
+
+Training stats:
+Threshold: 0.3896, accuracy: 0.7795
+Classification report
+               precision    recall  f1-score   support
+
+         0.0       0.77      0.78      0.78    161177
+         1.0       0.79      0.78      0.78    166524
+
+    accuracy                           0.78    327701
+   macro avg       0.78      0.78      0.78    327701
+weighted avg       0.78      0.78      0.78    327701
+
+Validation stats:
+Loss 0.8169, accuracy 0.8135
+ROC-AUC score: 0.6999
+Classification report
+               precision    recall  f1-score   support
+
+         0.0       0.97      0.83      0.89     24915
+         1.0       0.15      0.56      0.23      1345
+
+    accuracy                           0.81     26260
+   macro avg       0.56      0.69      0.56     26260
+weighted avg       0.93      0.81      0.86     26260
+
+Validation stats with threshold = 1.1:
+Loss 0.9737, accuracy 0.9008
+ROC-AUC score: 0.7432
+Classification report
+               precision    recall  f1-score   support
+
+         0.0       0.95      0.94      0.95      6061
+         1.0       0.31      0.37      0.34       439
+
+    accuracy                           0.90      6500
+   macro avg       0.63      0.66      0.64      6500
+weighted avg       0.91      0.90      0.91      6500
+
+Test stats with threshold = 1.1:
+Loss 1.0632, accuracy 0.8535
+ROC-AUC score: 0.7642
+Classification report
+               precision    recall  f1-score   support
+
+         0.0       0.95      0.89      0.92     11510
+         1.0       0.23      0.42      0.30       930
+
+    accuracy                           0.85     12440
+   macro avg       0.59      0.66      0.61     12440
+weighted avg       0.90      0.85      0.87     12440
+
+Finished testing.

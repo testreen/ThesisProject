@@ -1,15 +1,20 @@
 {
-    "dataset_path": 0,
+    "dataset_path": [
+      "N10_1_2",
+      "datasets/annotations/N10_annotated/N10_1_2_annotated.txt",
+      "datasets/images/N10/N10_1_2.tif"
+    ],
     "stats_per_batch" : 5,
     "mode" : "train",
     "task" : "link_prediction",
     "agg_class" : "MaxPoolAggregator",
     "cuda" : "False",
     "hidden_dims" : [20],
-    "num_samples" : 6,
-    "batch_size" : 32,
-    "epochs" : 10,
-    "lr" : 5e-2,
-    "weight_decay" : 0e-3,
-    "threshold":  0.5859
+    "num_samples" : 10,
+    "batch_size" : 40,
+    "epochs" : 30,
+    "lr" : 1e-3,
+    "weight_decay" : 1e-4,
+    "threshold":  1.1,
+    "dropout": 0.2
 }

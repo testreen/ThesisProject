@@ -84,10 +84,6 @@ def parseOneKI(basePath="", filePath='KI-Dataset/For KTH/Rachael/Rach_P28/P28_10
     labels = []
     original_labels = []
 
-    # Parse xml tree
-    tree = ET.parse(basePath+filePath+'.xml')
-    root = tree.getroot()
-
     # Parse full image to nparray
     image = basePath+filePath+'.tif'
     im = Image.open(image)
@@ -98,6 +94,28 @@ def parseOneKI(basePath="", filePath='KI-Dataset/For KTH/Rachael/Rach_P28/P28_10
     shape = np.shape(imarray)
     padded_array[:shape[0], :shape[1]] = imarray
     imarray = padded_array
+
+    # Parse xml tree if labels exist
+    try:
+        tree = ET.parse(basePath+filePath+'.xml')
+        root = tree.getroot()
+    except:
+        targets = []
+        slices = []
+        for i in range(4):
+            for j in range(4):
+                xmin = min(i*512, 2000-512)
+                xmax = min((i+1)*512, 2000)
+                ymin = min(j*512, 2000-512)
+                ymax = min((j+1)*512, 2000)
+                #print(xmin, xmax, ymin, ymax, i*4+j)
+                targets.append([])
+                slices.append(imarray[ymin:ymax, xmin:xmax, :])
+        for i in range(16):
+            labels.append(targets[i])
+            images.append(slices[i])
+        return images, labels, imarray, original_labels
+
 
     # Loop through crops
     for child in root.iter('object'):

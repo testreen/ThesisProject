@@ -9,9 +9,9 @@ import torch
 from torch.utils.data import Dataset
 
 try:
-    from neoConnector import all_cells_with_n_hops_in_area
+    from neoConnector import all_cells_with_n_hops_in_area, get_all_edges
 except ImportError:
-    from .neoConnector import all_cells_with_n_hops_in_area
+    from .neoConnector import all_cells_with_n_hops_in_area, get_all_edges
 
 class_map = {'inflammatory': 0, 'lymphocyte' : 1, 'fibroblast and endothelial': 2,
                'epithelial': 3, 'apoptosis / civiatte body': 4}
@@ -47,12 +47,16 @@ class KIGraphDataset(Dataset):
         points = self.parse_points(self.path[2]) # Get annotation path points
         coords = np.array([[cell.get('x'), cell.get('y')] for cell in cells]) # Get cell coordinates
         classes = np.array([class_map[cell.get('type')] for cell in cells]) # Get cell classes
+        class_scores = np.array([np.array([cell.get('c0'), cell.get('c1'), cell.get('c2'), cell.get('c3')]) for cell in cells]) # Get cell classes
         adj_edge = np.array(adj_to_edge(adj)) # Get neighbors on edge list format
         adj = np.array(adj) # Get neighbors on AdjacencyMatrix format
 
-        self.classes = classes
+        _, edges_all = get_all_edges(self.path[0]+"_prob", self.path[1], hops=2)
+        edges_all = np.array(adj_to_edge(edges_all))
 
-        edges_all = np.array(get_intersections(points, coords, adj)) # Calculate all edges passing over tissue layers
+        self.classes = classes
+        self.class_scores = class_scores
+        self.coords = coords
 
         print('Finished reading data.')
 
@@ -73,16 +77,16 @@ class KIGraphDataset(Dataset):
                             shape=(self.n,self.n),
                             dtype=np.float32)
         # Symmetric.
-        adj += adj.T.multiply(adj.T > adj) - adj.multiply(adj.T > adj)
+        #adj += adj.T.multiply(adj.T > adj) - adj.multiply(adj.T > adj)
 
         self.adj = adj.tolil()
 
-        self.edges_s = edges_s # Edges between layers
         self.nbrs_s = self.adj.rows # Neighbors
 
         # One hot encode all class labels
         features = np.zeros((classes.size, classes.max()+1))
         features[np.arange(classes.size),classes] = 1
+        features = np.concatenate((features, class_scores), axis=1)
         self.features = torch.from_numpy(features).float() # Cell features
 
         print('Finished setting up graph.')
@@ -100,21 +104,27 @@ class KIGraphDataset(Dataset):
         neg_seen = set(tuple(e[:2]) for e in edges_all) # Dont sample positive edges
         adj_tuple = set(tuple(e[:2]) for e in adj_edge) # List all edges
 
-        if self.mode != 'train':    # Add all edges except positive edges if validation/test
+        if self.mode != 'train2':    # Add all edges except positive edges if validation/test
+            pos_len = len(pos_examples)
             for example in adj_edge:
                 if (example[0], example[1]) in neg_seen:
                     continue
                 neg_examples.append(example)
-        else:   # Sample from adjacency edges not in positive
-            num_neg_examples = pos_examples.shape[0]
-            while cur < num_neg_examples:
-                u, v = _choice(n, 2, replace=False)
-                if (u, v) in neg_seen or (u, v) not in adj_tuple:
-                    continue
-                cur += 1
-                neg_examples.append([u, v])
+            neg_examples = np.array(neg_examples, dtype=np.int64)
+            #if self.mode == 'train':
+                #while(pos_examples.shape[0] < neg_examples.shape[0]):   # Oversample positive examples
+                #    pos_examples = np.append(pos_examples, pos_examples[:pos_len, :], axis=0)
+        #else:   # Undersample negative samples from adjacency edges not in positive
+        #    num_neg_examples = pos_examples.shape[0]
+        #    while cur < num_neg_examples:
+        #        u, v = _choice(n, 2, replace=False)
+        #        if (u, v) in neg_seen or (u, v) not in adj_tuple:
+        #            continue
+        #        cur += 1
+        #        neg_examples.append([u, v])
+    #        neg_examples = np.array(neg_examples, dtype=np.int64)
 
-        neg_examples = np.array(neg_examples, dtype=np.int64)
+
 
         x = np.vstack((pos_examples, neg_examples))
         y = np.concatenate((np.ones(pos_examples.shape[0]),
@@ -136,7 +146,7 @@ class KIGraphDataset(Dataset):
 
 
     def _read_from_db(self, path):
-        cells, adj = all_cells_with_n_hops_in_area(path[0], path[1], hops=2)
+        cells, adj = all_cells_with_n_hops_in_area(path[0]+"_prob", path[1], hops=2)
         return cells, adj
 
     def __len__(self):
@@ -144,6 +154,9 @@ class KIGraphDataset(Dataset):
 
     def __getitem__(self, idx):
         return self.x[idx], self.y[idx]
+
+    def get_coords_and_class(self):
+        return self.coords, self.classes
 
     def _form_computation_graph(self, idx):
         """

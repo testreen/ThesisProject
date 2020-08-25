@@ -64,12 +64,15 @@ class_names = ['inflammatory', 'lymphocyte', 'fibroblast and endothelial',
                'epithelial', 'apoptosis / civiatte body']
 
 
-def create_cell(tx, type, xCord, yCord, image):
-    tx.run("CREATE (a:Cell {type: $type, x:$x, y:$y, image:$image}) RETURN a", type=type, x=xCord, y=yCord, image=image)
+def create_cell(tx, type, xCord, yCord, image, label_scores):
+    tx.run("CREATE (a:Cell {type: $type, x:$x, y:$y, image:$image, c0: $c0, c1: $c1, c2:$c2, c3:$c3}) RETURN a", type=type, x=xCord, y=yCord, image=image, c0=label_scores[0], c1=label_scores[1], c2=label_scores[2], c3=label_scores[3])
 
 
-def save_results(boxes, labels, image_name):
+def save_results(boxes, labels, image_name, label_scores):
     assert len(boxes) == len(labels)
+    print(len(label_scores))
+    print(len(boxes))
+    assert len(boxes) == len(label_scores)
 
     uri = "bolt://localhost:7687"
     driver = GraphDatabase.driver(uri, auth=("neo4j", "123Broccoli456"))
@@ -82,7 +85,7 @@ def save_results(boxes, labels, image_name):
             xCen = (boxes[i][0] + boxes[i][2])//2
             yCen = (boxes[i][1] + boxes[i][3])//2
             label = labels[i]
-            create_cell(tx, class_names[int(label)], xCen, yCen, image_name)
+            create_cell(tx, class_names[int(label)], xCen, yCen, image_name, label_scores[i])
         tx.commit()
 
     driver.close()
@@ -101,7 +104,7 @@ def generate_graph(image_name):
             	nodeProjection: '*',
                 relationshipProjection: '*',
                 data: data,
-                topK: 6,
+                topK: 10,
                 similarityCutoff: 2000,
                 showComputations: true,
                 writeRelationshipType: "CLOSE_TO"
