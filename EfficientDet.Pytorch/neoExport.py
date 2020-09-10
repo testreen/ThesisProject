@@ -70,8 +70,6 @@ def create_cell(tx, type, xCord, yCord, image, label_scores):
 
 def save_results(boxes, labels, image_name, label_scores):
     assert len(boxes) == len(labels)
-    print(len(label_scores))
-    print(len(boxes))
     assert len(boxes) == len(label_scores)
 
     uri = "bolt://localhost:7687"
@@ -95,7 +93,6 @@ def generate_graph(image_name):
     driver = GraphDatabase.driver(uri, auth=("neo4j", "123Broccoli456"))
 
     with driver.session() as session:
-        print(image_name)
         result = session.run('''
             MATCH (p:Cell {image: $image})
             WITH {item:id(p), weights: [p.x, p.y]} as userData
@@ -112,8 +109,6 @@ def generate_graph(image_name):
              YIELD nodes, similarityPairs, writeRelationshipType, writeProperty, min, max, mean, stdDev, p25, p50, p75, p90, p95, p99, p999, p100
              RETURN nodes, similarityPairs, writeRelationshipType, writeProperty, min, max, mean, p95
         ''', image=image_name)
-        for record in result:
-            print(record)
     driver.close()
 
 if __name__ == '__main__':

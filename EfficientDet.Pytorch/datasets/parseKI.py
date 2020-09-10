@@ -66,6 +66,8 @@ label_paths = [
 class_names = ['inflammatory', 'lymphocyte', 'fibroblast and endothelial',
                'epithelial', 'apoptosis / civiatte body']
 
+mins = [0, 496, 992, 1488]
+maxs = [512, 1008, 1504, 2000]
 
 def parseKI(basePath="", fileCount=len(label_paths)):
     labels = [] # List of lists of targets
@@ -79,23 +81,29 @@ def parseKI(basePath="", fileCount=len(label_paths)):
         # Parse full image to nparray
         image = basePath+label_paths[path]+'.tif'
         im = Image.open(image)
-        imarray = np.array(im, dtype=np.double)/256
+        imarray = np.array(im, dtype=np.double)/255
 
         # Pad image to 2000x2000x3
-        padded_array = np.zeros((2000, 2000, 3))
+        padded_array = np.ones((2000, 2000, 3))
         shape = np.shape(imarray)
         padded_array[:shape[0], :shape[1]] = imarray
         imarray = padded_array
+        B = imarray.copy()
+        means = B.mean(axis=2)
+        B[means > 0.98,:] = np.nan
+        mean = np.nanmean(B, axis=(0,1))
+        std = np.nanstd(B, axis=(0,1))
+        imarray = (imarray - mean) / std
 
 
         targets = []
         slices = []
         for i in range(4):
             for j in range(4):
-                xmin = min(i*512, 2000-512)
-                xmax = min((i+1)*512, 2000)
-                ymin = min(j*512, 2000-512)
-                ymax = min((j+1)*512, 2000)
+                xmin = mins[i]
+                xmax = maxs[i]
+                ymin = mins[j]
+                ymax = maxs[j]
                 #print(xmin, xmax, ymin, ymax, i*4+j)
                 targets.append([])
                 slices.append(imarray[ymin:ymax, xmin:xmax, :])

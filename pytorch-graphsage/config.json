@@ -9,12 +9,12 @@
     "task" : "link_prediction",
     "agg_class" : "MaxPoolAggregator",
     "cuda" : "False",
-    "hidden_dims" : [20],
-    "num_samples" : 10,
-    "batch_size" : 40,
+    "hidden_dims" : [64],
+    "num_samples" : [10, 10],
+    "batch_size" : 32,
     "epochs" : 30,
     "lr" : 1e-3,
     "weight_decay" : 1e-4,
-    "threshold":  1.1,
-    "dropout": 0.2
+    "threshold":  0.72,
+    "dropout": 0.3
 }

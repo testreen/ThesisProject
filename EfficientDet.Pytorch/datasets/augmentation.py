@@ -3,6 +3,7 @@ from albumentations.pytorch.transforms import ToTensor
 import torch
 import numpy as np
 import cv2
+from PIL import Image
 
 
 def get_augumentation(phase, width=512, height=512, min_area=0., min_visibility=0.):
@@ -138,12 +139,6 @@ class Augmenter(object):
 
 
 class Normalizer(object):
-
-    def __init__(self):
-        self.mean = np.array([[[0.72482513, 0.59128926, 0.76370454]]])
-        self.std = np.array([[[0.18745105, 0.2514997,  0.15264913]]])
-
     def __call__(self, sample):
         image, annots = sample['img'], sample['annot']
-
-        return {'img': ((image.astype(np.float32) - self.mean) / self.std), 'annot': annots}
+        return {'img': ((image.astype(np.float32))), 'annot': annots}

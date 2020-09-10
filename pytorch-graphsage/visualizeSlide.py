@@ -47,12 +47,12 @@ annotation_paths = [
     ['N10_6_2', (0, 2000, 0, 2000), 'datasets/annotations/N10_annotated/N10_6_2_annotated.txt', 'datasets/images/N10/N10_6_2.tif'],
 ]
 '''
+'''
+
+'''
+
 
 annotation_paths = [
-    ['P9_1_1', (0, 2000, 0, 2000), 'datasets/annotations/P9_annotated/P9_1_1_annotated.txt', 'datasets/images/P9/P9_1_1.tif'],
-    ['P9_2_1', (0, 2000, 0, 2000), 'datasets/annotations/P9_annotated/P9_2_1_annotated.txt', 'datasets/images/P9/P9_2_1.tif'],
-    ['P9_3_1', (0, 2000, 0, 2000), 'datasets/annotations/P9_annotated/P9_3_1_annotated.txt', 'datasets/images/P9/P9_3_1.tif'],
-    ['P9_4_1', (0, 2000, 0, 2000), 'datasets/annotations/P9_annotated/P9_4_1_annotated.txt', 'datasets/images/P9/P9_4_1.tif'],
     ['P7_HE_Default_Extended_1_1', (0, 2000, 0, 2000), 'datasets/annotations/P7_annotated/P7_HE_Default_Extended_1_1.txt', 'datasets/images/P7/P7_HE_Default_Extended_1_1.tif'],
     ['P7_HE_Default_Extended_2_1', (0, 2000, 0, 2000), 'datasets/annotations/P7_annotated/P7_HE_Default_Extended_2_1.txt', 'datasets/images/P7/P7_HE_Default_Extended_2_1.tif'],
     ['P7_HE_Default_Extended_2_2', (0, 2000, 0, 2000), 'datasets/annotations/P7_annotated/P7_HE_Default_Extended_2_2.txt', 'datasets/images/P7/P7_HE_Default_Extended_2_2.tif'],
@@ -63,6 +63,13 @@ annotation_paths = [
     ['N10_4_2', (0, 2000, 0, 2000), 'datasets/annotations/N10_annotated/N10_4_2_annotated.txt', 'datasets/images/N10/N10_4_2.tif'],
     ['N10_5_2', (0, 2000, 0, 2000), 'datasets/annotations/N10_annotated/N10_5_2_annotated.txt', 'datasets/images/N10/N10_5_2.tif'],
     ['N10_6_2', (0, 2000, 0, 2000), 'datasets/annotations/N10_annotated/N10_6_2_annotated.txt', 'datasets/images/N10/N10_6_2.tif'],
+
+
+    ['P9_1_1', (0, 2000, 0, 2000), 'datasets/annotations/P9_annotated/P9_1_1_annotated.txt', 'datasets/images/P9/P9_1_1.tif'],
+    ['P9_2_1', (0, 2000, 0, 2000), 'datasets/annotations/P9_annotated/P9_2_1_annotated.txt', 'datasets/images/P9/P9_2_1.tif'],
+    ['P9_3_1', (0, 2000, 0, 2000), 'datasets/annotations/P9_annotated/P9_3_1_annotated.txt', 'datasets/images/P9/P9_3_1.tif'],
+    ['P9_4_1', (0, 2000, 0, 2000), 'datasets/annotations/P9_annotated/P9_4_1_annotated.txt', 'datasets/images/P9/P9_4_1.tif'],
+
 ]
 
 def main(config, path):
@@ -95,6 +102,9 @@ def main(config, path):
 
     stats_per_batch = config['stats_per_batch']
 
+
+    sigmoid = nn.Sigmoid()
+
     # Evaluate on test set.
 
     directory = os.path.join(os.path.dirname(os.getcwd()),
@@ -120,10 +130,11 @@ def main(config, path):
         coords, classes = datasets[i].get_coords_and_class()
 
         for (idx, batch) in enumerate(loaders[i]):
-            edges, features, node_layers, mappings, rows, labels = batch
+            edges, features, node_layers, mappings, rows, labels, dist = batch
             features, labels = features.to(device), labels.to(device)
-            out = model(features, node_layers, mappings, rows)
+            out = model(features, node_layers, mappings, rows, dist)
             all_pairs = torch.mm(out, out.t())
+            all_pairs = sigmoid(all_pairs)
             scores = all_pairs[edges.T]
             loss = criterion(scores, labels.float())
             running_loss += loss.item()
@@ -132,12 +143,13 @@ def main(config, path):
             preds = edges[torch.nonzero(predictions).detach().cpu().numpy(), :]
             neg_preds = edges[(predictions == 0).nonzero(), :]
 
+            if len(preds) > 0:
+                for pred in preds:
+                    edge_pred.append([node_layers[-1][pred[0][0]],node_layers[-1][pred[0][1]]])
 
-            for pred in preds:
-                edge_pred.append([node_layers[-1][pred[0][0]],node_layers[-1][pred[0][1]]])
-
-            for pred in neg_preds:
-                neg_pred.append([node_layers[-1][pred[0][0]],node_layers[-1][pred[0][1]]])
+            if len(neg_preds) > 0:
+                for pred in neg_preds:
+                    neg_pred.append([node_layers[-1][pred[0][0]],node_layers[-1][pred[0][1]]])
 
             num_correct += torch.sum(predictions == labels.long()).item()
             total_correct += torch.sum(predictions == labels.long()).item()
@@ -159,14 +171,15 @@ def main(config, path):
 
         running_loss = 0.0
         num_correct, num_examples = 0, 0
-    print(path[3])
     im = Image.open(path[3])
-    imarray = np.array(im, dtype=np.double)/256
+    imarray = np.array(im, dtype=np.double)/255
+    imarray[:,:,[0,2]] = imarray[:,:,[2,0]]
+
     vis = utils.visualize_edges(imarray, edge_pred, neg_pred, coords, classes, path[2])
-    #cv2.imshow('image', vis)
-    #cv2.waitKey(0)
-    cv2.imwrite('results/edges_all_path_savgol_{}.png'.format(path[0]),vis*255)
-    #cv2.destroyAllWindows()
+    cv2.imshow('image', vis)
+    cv2.waitKey(0)
+    #cv2.imwrite('results/edges_all_path_savgol_norm_{}.png'.format(path[0]),vis*255)
+    cv2.destroyAllWindows()
 
     total_loss /= total_batches
     total_accuracy = total_correct / total_examples
@@ -184,4 +197,15 @@ def main(config, path):
 if __name__ == '__main__':
     config = utils.parse_args()
     for path in annotation_paths:
+        #im = cv2.imread(path[3])
+        # calculate mean value from RGB channels and flatten to 1D array
+        #vals = im.mean(axis=2).flatten()
+        # plot histogram with 255 bins
+        #plt.plot(range(3))
+        #b, bins, patches = plt.hist(im[:,:,0].flatten(), 255)
+        #b, bins, patches = plt.hist(im[:,:,1].flatten(), 255)
+        #b, bins, patches = plt.hist(im[:,:,2].flatten(), 255)
+        #b, bins, patches = plt.hist(vals, 255)
+        #plt.xlim([0,254])
+        #plt.show()
         main(config, path)

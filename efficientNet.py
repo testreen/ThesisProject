@@ -15,6 +15,8 @@ import matplotlib.pyplot as plt
 import PIL
 from PIL import Image
 import time
+import math
+import cv2
 
 from parseData import parseData
 from efficientnet_pytorch import EfficientNet
@@ -33,7 +35,7 @@ parser.add_argument('-a', '--arch', metavar='ARCH', default='efficientnet-b0',
                     help='model architecture (default: efficientnet-b0)')
 parser.add_argument('-j', '--workers', default=1, type=int, metavar='N',
                     help='number of data loading workers (default: 1)')
-parser.add_argument('--epochs', default=15, type=int, metavar='N',
+parser.add_argument('--epochs', default=5, type=int, metavar='N',
                     help='number of total epochs to run')
 parser.add_argument('--start-epoch', default=0, type=int, metavar='N',
                     help='manual epoch number (useful on restarts)')
@@ -70,13 +72,26 @@ parser.add_argument('--image_size', default=32, type=int,
                     help='image size')
 parser.add_argument('--advprop', default=False, action='store_true',
                     help='use advprop or not')
+parser.add_argument('--upsample', default=False, action='store_true',
+                    help='upsample, else use class weights')
 
 # Static config
-num_classes = 5
+num_classes = 4
 class_names = ['inflammatory', 'lymphocyte', 'fibroblast and endothelial',
                'epithelial', 'apoptosis / civiatte body']
 shuffle = True
 k = 5 # Cross-validation splits
+
+class AddGaussianNoise(object):
+    def __init__(self, mean=0., std=1.):
+        self.std = std
+        self.mean = mean
+
+    def __call__(self, tensor):
+        return tensor + torch.randn(tensor.size()) * self.std + self.mean
+
+    def __repr__(self):
+        return self.__class__.__name__ + '(mean={0}, std={1})'.format(self.mean, self.std)
 
 def lambdaTransform(image):
     return image * 2.0 - 1.0
@@ -87,24 +102,26 @@ def main():
     mp.set_start_method('spawn')
 
     # Normalize using dataset mean + std or advprop settings
-    if args.advprop:
-        normalize = transforms.Lambda(lambdaTransform)
-    else:
-        normalize = transforms.Normalize(mean=[0.72482513, 0.59128926, 0.76370454],
-                                         std=[0.18745105, 0.2514997,  0.15264913])
+    #if args.advprop:
+    #    normalize = transforms.Lambda(lambdaTransform)
+    #else:
+    #    normalize = transforms.Normalize(mean=[0.72482513, 0.59128926, 0.76370454],
+    #                                     std=[0.18745105, 0.2514997,  0.15264913])
 
     image_size = args.image_size
     print('Using image size', image_size)
 
     # Image transforms used for training and validation
+    print(image_size+math.floor(0.1*image_size))
     train_tsfm = transforms.Compose([
         transforms.ToPILImage(),
-        transforms.Resize(image_size+2, interpolation=PIL.Image.BICUBIC),
+        transforms.Resize(image_size+math.floor(0.1*image_size), interpolation=PIL.Image.BICUBIC),
         transforms.RandomResizedCrop(image_size),
         transforms.RandomHorizontalFlip(),
         transforms.RandomVerticalFlip(),
         transforms.ToTensor(),
-        normalize,
+        AddGaussianNoise(0., 1.)
+    #    normalize,
     ])
 
     val_tsfm = transforms.Compose([
@@ -112,12 +129,18 @@ def main():
         transforms.Resize(image_size, interpolation=PIL.Image.BICUBIC),
         transforms.CenterCrop(image_size),
         transforms.ToTensor(),
-        normalize,
+    #    normalize,
     ])
 
     # Load and split datasets
 
-    images, labels = parseData(basePath=args.data)
+    images, labels = parseData(basePath=args.data, fileCount=5)
+    exit()
+
+    for i in range(len(labels)-1, -1, -1):
+        if(labels[i] == 4):
+            labels.pop(i)
+            images.pop(i)
 
     for i in range(num_classes):
         print('The count of {} is: {}'.format(class_names[i], labels.count(i)))
@@ -129,6 +152,49 @@ def main():
     train_labels = labels[:min(20390, len(images)-20)]
     test_images = images[min(20390, len(images)-20):]
     test_labels = labels[min(20390, len(images)-20):]
+
+    '''
+    Train data without sampling:
+    The count of inflammatory is: 1387
+    The count of lymphocyte is: 2470
+    The count of fibroblast and endothelial is: 6257
+    The count of epithelial is: 10276
+    '''
+    if args.upsample:
+        c0_ind = [i for i, x in enumerate(train_labels) if x == 0]
+        c1_ind = [i for i, x in enumerate(train_labels) if x == 1]
+        c2_ind = [i for i, x in enumerate(train_labels) if x == 2]
+        c3_ind = [i for i, x in enumerate(train_labels) if x == 3]
+        print(train_labels)
+        for i in range(8):
+            for idx, val in enumerate(c0_ind):
+                print(val)
+                train_labels.append(train_labels[val])
+                train_images.append(train_images[val])
+        for i in range(4):
+            for idx, val in enumerate(c1_ind):
+                train_labels.append(train_labels[val])
+                train_images.append(train_images[val])
+        for i in range(1):
+            for idx, val in enumerate(c2_ind):
+                train_labels.append(train_labels[val])
+                train_images.append(train_images[val])
+
+        for idx, val in enumerate(c3_ind):
+            if idx < 2000:
+                train_labels.append(train_labels[val])
+                train_images.append(train_images[val])
+
+    for i in range(num_classes):
+        print('The count of {} is: {}'.format(class_names[i], train_labels.count(i)))
+
+    '''
+    Train data with sampling
+    The count of inflammatory is: 12483
+    The count of lymphocyte is: 12350
+    The count of fibroblast and endothelial is: 12514
+    The count of epithelial is: 12276
+    '''
 
     # Using Stratified K-Fold with shuffle to evenly distribute the data between validation splits
     skf = StratifiedKFold(n_splits=k, shuffle=shuffle, random_state=args.seed)

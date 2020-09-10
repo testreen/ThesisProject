@@ -43,17 +43,20 @@ class KIGraphDataset(Dataset):
         print('--------------------------------')
         print('Reading dataset from {}'.format(self.path[0]))
 
-        cells, adj = self._read_from_db(self.path) # Get cells and AdjacencyMatrix
+        cells, dist = self._read_from_db(self.path) # Get cells and AdjacencyMatrix
         points = self.parse_points(self.path[2]) # Get annotation path points
         coords = np.array([[cell.get('x'), cell.get('y')] for cell in cells]) # Get cell coordinates
         classes = np.array([class_map[cell.get('type')] for cell in cells]) # Get cell classes
         class_scores = np.array([np.array([cell.get('c0'), cell.get('c1'), cell.get('c2'), cell.get('c3')]) for cell in cells]) # Get cell classes
-        adj_edge = np.array(adj_to_edge(adj)) # Get neighbors on edge list format
-        adj = np.array(adj) # Get neighbors on AdjacencyMatrix format
+        dist = np.array(dist)
+        adj = np.copy(dist)
+        adj[adj != 0] = 1
+        adj_edge = np.array(adj_to_edge(adj.tolist())) # Get neighbors on edge list format
 
-        _, edges_all = get_all_edges(self.path[0]+"_prob", self.path[1], hops=2)
+        _, edges_all = get_all_edges(self.path[0]+"_final", self.path[1], hops=2)
         edges_all = np.array(adj_to_edge(edges_all))
 
+        self.dist = dist
         self.classes = classes
         self.class_scores = class_scores
         self.coords = coords
@@ -83,6 +86,9 @@ class KIGraphDataset(Dataset):
 
         self.nbrs_s = self.adj.rows # Neighbors
 
+        #print(self.nbrs_s[0])
+        #print(self.dist[0,:])
+        #exit()
         # One hot encode all class labels
         features = np.zeros((classes.size, classes.max()+1))
         features[np.arange(classes.size),classes] = 1
@@ -93,9 +99,9 @@ class KIGraphDataset(Dataset):
 
         print('Setting up examples.')
 
-
-        pos_examples = pos_examples[:, :2]
-        pos_examples = np.unique(pos_examples, axis=0)
+        if len(pos_examples) > 0:
+            pos_examples = pos_examples[:, :2]
+            pos_examples = np.unique(pos_examples, axis=0)
 
         # Generate negative examples not in cell edges crossing path
         neg_examples = []
@@ -104,8 +110,8 @@ class KIGraphDataset(Dataset):
         neg_seen = set(tuple(e[:2]) for e in edges_all) # Dont sample positive edges
         adj_tuple = set(tuple(e[:2]) for e in adj_edge) # List all edges
 
-        if self.mode != 'train2':    # Add all edges except positive edges if validation/test
-            pos_len = len(pos_examples)
+        if self.mode != 'train':    # Add all edges except positive edges if validation/test
+
             for example in adj_edge:
                 if (example[0], example[1]) in neg_seen:
                     continue
@@ -114,15 +120,15 @@ class KIGraphDataset(Dataset):
             #if self.mode == 'train':
                 #while(pos_examples.shape[0] < neg_examples.shape[0]):   # Oversample positive examples
                 #    pos_examples = np.append(pos_examples, pos_examples[:pos_len, :], axis=0)
-        #else:   # Undersample negative samples from adjacency edges not in positive
-        #    num_neg_examples = pos_examples.shape[0]
-        #    while cur < num_neg_examples:
-        #        u, v = _choice(n, 2, replace=False)
-        #        if (u, v) in neg_seen or (u, v) not in adj_tuple:
-        #            continue
-        #        cur += 1
-        #        neg_examples.append([u, v])
-    #        neg_examples = np.array(neg_examples, dtype=np.int64)
+        else:   # Undersample negative samples from adjacency edges not in positive
+            num_neg_examples = pos_examples.shape[0]
+            while cur < num_neg_examples:
+                u, v = _choice(n, 2, replace=False)
+                if (u, v) in neg_seen or (u, v) not in adj_tuple:
+                    continue
+                cur += 1
+                neg_examples.append([u, v])
+            neg_examples = np.array(neg_examples, dtype=np.int64)
 
 
 
@@ -146,8 +152,8 @@ class KIGraphDataset(Dataset):
 
 
     def _read_from_db(self, path):
-        cells, adj = all_cells_with_n_hops_in_area(path[0]+"_prob", path[1], hops=2)
-        return cells, adj
+        cells, dist = all_cells_with_n_hops_in_area(path[0]+"_final", path[1], hops=2)
+        return cells, dist
 
     def __len__(self):
         return len(self.x)
@@ -224,6 +230,8 @@ class KIGraphDataset(Dataset):
 
         rows = self.nbrs_s[node_layers[0]]
         features = self.features[node_layers[0], :]
+
+        dist = torch.from_numpy(self.dist)
         labels = torch.FloatTensor([sample[1] for sample in batch])
         edges = np.array([sample[0].numpy() for sample in batch])
         edges = np.array([mappings[-1][v] for v in edges.flatten()]).reshape(edges.shape)
@@ -231,7 +239,7 @@ class KIGraphDataset(Dataset):
         # TODO: Pin memory. Change type of node_layers, mappings and rows to
         # tensor?
 
-        return edges, features, node_layers, mappings, rows, labels
+        return edges, features, node_layers, mappings, rows, labels, dist
 
     def get_dims(self):
         return self.features.shape[1], 1

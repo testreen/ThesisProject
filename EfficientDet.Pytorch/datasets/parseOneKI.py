@@ -21,13 +21,15 @@ class KiDataset(data.Dataset):
     """
 
     def __init__(self, root="", filePath="", transform=None):
-        images, target, original_image, original_labels = parseOneKI(basePath=root, filePath=filePath)
+        images, target, original_image, original_labels, normal_image = parseOneKI(basePath=root, filePath=filePath)
 
         self.image_set = images # 57*16 images
         self.target_set = target
         self.image = original_image
         self.targets = original_labels
+        self.filePath = root+filePath
         self.filename = filePath.rsplit('/', 1)[-1]
+        self.normal_image = normal_image
 
         self.transform = transform
 
@@ -57,6 +59,8 @@ class KiDataset(data.Dataset):
     def load_annotations(self, index):
         return np.array(self.target_set[index])
 
+mins = [0, 496, 992, 1488]
+maxs = [512, 1008, 1504, 2000]
 
 def translate_boxes(arr):
     #print(arr)
@@ -64,8 +68,8 @@ def translate_boxes(arr):
     for i in range(4):
         for j in range(4):
             index = i*4+j
-            xmin = min(i*512, 2000-512)
-            ymin = min(j*512, 2000-512)
+            xmin = mins[i]
+            ymin = mins[j]
             for k in range(len(arr[index])):
                 label = []
                 if(len(arr[index]) > 0):
@@ -78,6 +82,8 @@ def translate_boxes(arr):
     return labels
 
 
+
+
 def parseOneKI(basePath="", filePath='KI-Dataset/For KTH/Rachael/Rach_P28/P28_10_5'):
 
     images = []
@@ -87,13 +93,23 @@ def parseOneKI(basePath="", filePath='KI-Dataset/For KTH/Rachael/Rach_P28/P28_10
     # Parse full image to nparray
     image = basePath+filePath+'.tif'
     im = Image.open(image)
-    imarray = np.array(im, dtype=np.double)/256
+    imarray = np.array(im, dtype=np.double)/255
+
+
 
     # Pad image to 2000x2000x3
-    padded_array = np.zeros((2000, 2000, 3))
+    padded_array = np.ones((2000, 2000, 3))
     shape = np.shape(imarray)
     padded_array[:shape[0], :shape[1]] = imarray
     imarray = padded_array
+
+    normal = imarray.copy()
+    B = imarray.copy()
+    means = B.mean(axis=2)
+    B[means > 0.98,:] = np.nan
+    mean = np.nanmean(B, axis=(0,1))
+    std = np.nanstd(B, axis=(0,1))
+    imarray = (imarray - mean) / std
 
     # Parse xml tree if labels exist
     try:
@@ -104,17 +120,17 @@ def parseOneKI(basePath="", filePath='KI-Dataset/For KTH/Rachael/Rach_P28/P28_10
         slices = []
         for i in range(4):
             for j in range(4):
-                xmin = min(i*512, 2000-512)
-                xmax = min((i+1)*512, 2000)
-                ymin = min(j*512, 2000-512)
-                ymax = min((j+1)*512, 2000)
+                xmin = mins[i]
+                xmax = maxs[i]
+                ymin = mins[j]
+                ymax = maxs[j]
                 #print(xmin, xmax, ymin, ymax, i*4+j)
                 targets.append([])
                 slices.append(imarray[ymin:ymax, xmin:xmax, :])
         for i in range(16):
             labels.append(targets[i])
             images.append(slices[i])
-        return images, labels, imarray, original_labels
+        return images, labels, imarray, original_labels, normal
 
 
     # Loop through crops
@@ -156,10 +172,10 @@ def parseOneKI(basePath="", filePath='KI-Dataset/For KTH/Rachael/Rach_P28/P28_10
     slices = []
     for i in range(4):
         for j in range(4):
-            xmin = min(i*512, 2000-512)
-            xmax = min((i+1)*512, 2000)
-            ymin = min(j*512, 2000-512)
-            ymax = min((j+1)*512, 2000)
+            xmin = mins[i]
+            xmax = maxs[i]
+            ymin = mins[j]
+            ymax = maxs[j]
             #print(xmin, xmax, ymin, ymax, i*4+j)
             targets.append([])
             slices.append(imarray[ymin:ymax, xmin:xmax, :])
@@ -202,4 +218,4 @@ def parseOneKI(basePath="", filePath='KI-Dataset/For KTH/Rachael/Rach_P28/P28_10
         labels.append(targets[i])
         images.append(slices[i])
 
-    return images, labels, imarray, original_labels
+    return images, labels, imarray, original_labels, normal

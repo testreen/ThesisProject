@@ -44,7 +44,7 @@ class FocalLoss(nn.Module):
         regression_losses = []
 
         beta = 0.9999
-        samples_per_cls = [1165, 2219, 4896, 8133]
+        samples_per_cls = [1165, 2219, 4896, 8133] # From training data
 
         anchor = anchors[0, :, :]
 

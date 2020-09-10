@@ -1,6 +1,7 @@
 from PIL import Image
 import numpy as np
 import xml.etree.ElementTree as ET
+import matplotlib.pyplot as plt
 
 label_paths = [
     'KI-Dataset/Training LabelIMG/For KTH/Helena/Helena_P7/P7_HE_Default_Extended_1_1',
@@ -67,7 +68,7 @@ class_names = ['inflammatory', 'lymphocyte', 'fibroblast and endothelial',
                'epithelial', 'apoptosis / civiatte body']
 
 '''
-Parse KI dataset used for EfficientNet training 
+Parse KI dataset used for EfficientNet training
 '''
 def parseData(basePath="", fileCount=len(label_paths)):
     labels = []
@@ -81,7 +82,25 @@ def parseData(basePath="", fileCount=len(label_paths)):
         # Parse full image to nparray
         image = basePath+label_paths[path]+'.tif'
         im = Image.open(image)
-        imarray = np.array(im, dtype=np.double)
+        imarray = np.array(im, dtype=np.double)/255
+        B = imarray.copy()
+
+        means = B.mean(axis=2)
+        B[means > 0.90,:] = np.nan
+
+        mean = np.nanmean(B, axis=(0,1))
+        std = np.nanstd(B, axis=(0,1))
+        imarray = (imarray - mean) / std
+
+        vals = imarray.mean(axis=2).flatten()
+        # plot histogram with 255 bins
+        #plt.plot(range(3))
+        #b, bins, patches = plt.hist(im[:,:,0].flatten(), 255)
+        #b, bins, patches = plt.hist(im[:,:,1].flatten(), 255)
+        #b, bins, patches = plt.hist(im[:,:,2].flatten(), 255)
+        b, bins, patches = plt.hist(vals, 255)
+        plt.xlim([-5,5])
+        plt.show()
 
         # Loop through crops
         for child in root.iter('object'):
@@ -109,6 +128,6 @@ def parseData(basePath="", fileCount=len(label_paths)):
                 meanY = max(meanY, 18)
                 meanY = min(meanY, imarray.shape[0]-18)
 
-                cropArray = imarray[meanY-18:meanY+18, meanX-18:meanX+18, :]/256
+                cropArray = imarray[meanY-18:meanY+18, meanX-18:meanX+18, :]
                 images.append(cropArray)
     return images, labels

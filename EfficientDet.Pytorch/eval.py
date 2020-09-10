@@ -308,8 +308,5 @@ if __name__ == '__main__':
 
     test_dataset = KiDataset(
         root=args.dataset_root,
-        set_name='test',
-        transform=transforms.Compose(
-            [
-                Normalizer()]))
+        set_name='test')
     evaluate(test_dataset, model)

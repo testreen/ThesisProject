@@ -49,7 +49,7 @@ def all_cells_with_n_hops_in_area(image_name, coords, hops=1):
             		// ...Check for edge existence.
                 	CASE size((n)-[:CLOSE_TO]->(m))
             			WHEN 0 THEN 0
-            			ELSE 1
+            			ELSE gds.alpha.similarity.euclideanDistance([n.x, n.y],[m.x, m.y])
             		END
                 ]
             ] AS AdjacencyMatrix

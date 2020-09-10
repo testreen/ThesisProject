@@ -1,0 +1,77 @@
+
+Validation accuracy, t=0.6:
+ROC-AUC score: 0.7857
+Classification report
+               precision    recall  f1-score   support
+
+         0.0       0.99      0.74      0.84     33953
+         1.0       0.10      0.74      0.17      1317
+
+    accuracy                           0.74     35270
+   macro avg       0.54      0.74      0.51     35270
+weighted avg       0.95      0.74      0.82     35270
+
+Validation accuracy, t=0.7:
+Loss 0.8116, accuracy 0.9046
+ROC-AUC score: 0.7903
+Classification report
+               precision    recall  f1-score   support
+
+         0.0       0.98      0.92      0.95     33953
+         1.0       0.18      0.42      0.25      1317
+
+    accuracy                           0.90     35270
+   macro avg       0.58      0.67      0.60     35270
+weighted avg       0.95      0.90      0.92     35270
+
+Validation accuracy, t=0.75:
+Loss 0.8116, accuracy 0.9239
+ROC-AUC score: 0.7904
+Classification report
+               precision    recall  f1-score   support
+
+         0.0       0.97      0.95      0.96     33953
+         1.0       0.20      0.34      0.25      1317
+
+    accuracy                           0.92     35270
+   macro avg       0.59      0.64      0.61     35270
+weighted avg       0.94      0.92      0.93     35270
+
+Validation accuracy, t=0.8:
+Loss 0.8116, accuracy 0.9363
+ROC-AUC score: 0.7905
+Classification report
+               precision    recall  f1-score   support
+
+         0.0       0.97      0.96      0.97     33953
+         1.0       0.20      0.24      0.22      1317
+
+    accuracy                           0.94     35270
+   macro avg       0.59      0.60      0.59     35270
+weighted avg       0.94      0.94      0.94     35270
+
+Validation accuracy, t=0.85:
+Loss 0.8116, accuracy 0.9452
+ROC-AUC score: 0.7904
+Classification report
+               precision    recall  f1-score   support
+
+         0.0       0.97      0.98      0.97     33953
+         1.0       0.19      0.15      0.17      1317
+
+    accuracy                           0.95     35270
+   macro avg       0.58      0.56      0.57     35270
+weighted avg       0.94      0.95      0.94     35270
+
+Test accuracy, t=0.75:
+Loss 0.8381, accuracy 0.9040
+ROC-AUC score: 0.8892
+Classification report
+               precision    recall  f1-score   support
+
+         0.0       0.97      0.92      0.95     42588
+         1.0       0.37      0.62      0.47      3074
+
+    accuracy                           0.90     45662
+   macro avg       0.67      0.77      0.71     45662
+weighted avg       0.93      0.90      0.91     45662

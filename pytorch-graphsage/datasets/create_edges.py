@@ -50,21 +50,24 @@ annotation_paths = [ #Filename, (xmin, xmax, ymin, ymax), path to annotation
 
 def create_edges():
     for path in annotation_paths:
-        cells, adj = _read_from_db(path) # Get cells and AdjacencyMatrix
+        cells, dist = _read_from_db(path) # Get cells and AdjacencyMatrix
         points = parse_points(path[2]) # Get annotation path points
         coords = np.array([[cell.get('x'), cell.get('y')] for cell in cells]) # Get cell coordinates
         ids = np.array([cell.id for cell in cells]) # Get cell ids
         classes = np.array([class_map[cell.get('type')] for cell in cells]) # Get cell classes
         class_scores = np.array([np.array([cell.get('c0'), cell.get('c1'), cell.get('c2'), cell.get('c3')]) for cell in cells]) # Get cell classes
-        adj_edge = np.array(adj_to_edge(adj)) # Get neighbors on edge list format
-        adj = np.array(adj) # Get neighbors on AdjacencyMatrix format
+
+        dist = np.array(dist)
+        adj = np.copy(dist)
+        adj[adj != 0] = 1
+
 
         edges_all = get_intersections(points, coords, adj) # Calculate all edges passing over tissue layers
         print(path[0])
-        save_edges(path[0]+'_prob', edges_all, ids)
+        save_edges(path[0]+'_final', edges_all, ids)
 
 def _read_from_db(path):
-    cells, adj = all_cells_with_n_hops_in_area(path[0]+"_prob", path[1], hops=2)
+    cells, adj = all_cells_with_n_hops_in_area(path[0]+"_final", path[1], hops=2)
     return cells, adj
 
 def parse_points(fname):

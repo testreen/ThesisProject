@@ -135,15 +135,10 @@ def main_worker(gpu, ngpus_per_node, args):
         root=args.dataset_root,
         set_name='train',
         transform=transforms.Compose(
-            [
-                Normalizer(),
-                Augmenter()]))
+            [Augmenter()]))
     valid_dataset = KiDataset(
         root=args.dataset_root,
-        set_name='val',
-        transform=transforms.Compose(
-            [
-                Normalizer()]))
+        set_name='val')
     #test_dataset = KiDataset(
     #    root=args.dataset_root,
     #    set_name='test',

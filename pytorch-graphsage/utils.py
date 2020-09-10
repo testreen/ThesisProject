@@ -39,7 +39,7 @@ KI_CLASSES = ['inflammatory', 'lymphocyte', 'fibroblast and endothelial',
 def visualize_edges(img, edges, neg_edges, coords, classes, path, class_idx_to_name=None, color=BOX_COLOR, thickness=1):
     img2 = img.copy()
 
-    edge_centers = np.zeros((len(edges), 2), dtype=int)
+    edge_centers = []
 
     for i in range(len(edges)):
         id_1 = edges[i][0]
@@ -48,10 +48,10 @@ def visualize_edges(img, edges, neg_edges, coords, classes, path, class_idx_to_n
         x_1, y_1 = coords[id_1]
         x_2, y_2 = coords[id_2]
 
-        edge_centers[i,0] = int((x_1 + x_2)/2)
-        edge_centers[i,1] = int((y_1 + y_2)/2)
+        #if classes[id_1] != classes[id_2]:
+        edge_centers.append(np.array([int((x_1 + x_2)/2), int((y_1 + y_2)/2)]))
 
-        cv2.line(img2, (int(x_1), int(y_1)), (int(x_2), int(y_2)), (0, 0, 0), thickness=2, lineType=8)
+        cv2.line(img2, (int(x_1), int(y_1)), (int(x_2), int(y_2)), (0, 0, 0), thickness=1, lineType=8)
 
     for i in range(len(neg_edges)):
         id_1 = neg_edges[i][0]
@@ -62,6 +62,7 @@ def visualize_edges(img, edges, neg_edges, coords, classes, path, class_idx_to_n
 
         cv2.line(img2, (int(x_1), int(y_1)), (int(x_2), int(y_2)), (0, 0, 1), thickness=1, lineType=8)
 
+    edge_centers = np.asarray(edge_centers)
     edge_centers = np.c_[edge_centers[:,0], edge_centers[:,1]]
 
     # Get distance matrix and solve tsp
@@ -73,7 +74,7 @@ def visualize_edges(img, edges, neg_edges, coords, classes, path, class_idx_to_n
     # Smooth path
     smooth_path = []
     avg_points = 15
-    distance_max = 100
+    distance_max = 75
     for i in range(len(tsp_path)-avg_points):
         # stop at large jumps
         skip = avg_points
@@ -133,27 +134,31 @@ def visualize_edges(img, edges, neg_edges, coords, classes, path, class_idx_to_n
 
 # Total 27, Test = 5, Train 18, Val 4
 
+'''
+'''
+
 train_annotation_path = [ #Filename, (xmin, xmax, ymin, ymax), path to annotation
-    ['N10_1_1', (0, 2000, 0, 2000), 'datasets/annotations/N10_annotated/N10_1_1_annotated.txt'],
+    #['N10_1_1', (0, 2000, 0, 2000), 'datasets/annotations/N10_annotated/N10_1_1_annotated.txt'],
     ['N10_1_2', (0, 2000, 0, 2000), 'datasets/annotations/N10_annotated/N10_1_2_annotated.txt'],
-    ['N10_2_1', (0, 2000, 0, 2000), 'datasets/annotations/N10_annotated/N10_2_1_annotated.txt'],
+    #['N10_2_1', (0, 2000, 0, 2000), 'datasets/annotations/N10_annotated/N10_2_1_annotated.txt'],
     ['N10_2_2', (0, 2000, 0, 2000), 'datasets/annotations/N10_annotated/N10_2_2_annotated.txt'],
-    ['N10_3_1', (0, 2000, 0, 2000), 'datasets/annotations/N10_annotated/N10_3_1_annotated.txt'],
+    #['N10_3_1', (0, 2000, 0, 2000), 'datasets/annotations/N10_annotated/N10_3_1_annotated.txt'],
     ['N10_3_2', (0, 2000, 0, 2000), 'datasets/annotations/N10_annotated/N10_3_2_annotated.txt'],
-    ['N10_4_1', (0, 2000, 0, 2000), 'datasets/annotations/N10_annotated/N10_4_1_annotated.txt'],
+    #['N10_4_1', (0, 2000, 0, 2000), 'datasets/annotations/N10_annotated/N10_4_1_annotated.txt'],
     ['N10_4_2', (0, 2000, 0, 2000), 'datasets/annotations/N10_annotated/N10_4_2_annotated.txt'],
     ['N10_5_2', (0, 2000, 0, 2000), 'datasets/annotations/N10_annotated/N10_5_2_annotated.txt'],
     ['N10_6_2', (0, 2000, 0, 2000), 'datasets/annotations/N10_annotated/N10_6_2_annotated.txt'],
-    ['N10_7_2', (0, 2000, 0, 2000), 'datasets/annotations/N10_annotated/N10_7_2_annotated.txt'],
+    #['N10_7_2', (0, 2000, 0, 2000), 'datasets/annotations/N10_annotated/N10_7_2_annotated.txt'],
     ['N10_7_3', (0, 2000, 0, 2000), 'datasets/annotations/N10_annotated/N10_7_3_annotated.txt'],
-    ['N10_8_2', (0, 2000, 0, 2000), 'datasets/annotations/N10_annotated/N10_8_2_annotated.txt'],
+    #['N10_8_2', (0, 2000, 0, 2000), 'datasets/annotations/N10_annotated/N10_8_2_annotated.txt'],
     ['N10_8_3', (0, 2000, 0, 2000), 'datasets/annotations/N10_annotated/N10_8_3_annotated.txt'],
     ['P7_HE_Default_Extended_3_2', (0, 2000, 0, 2000), 'datasets/annotations/P7_annotated/P7_HE_Default_Extended_3_2.txt'],
     ['P7_HE_Default_Extended_4_2', (0, 2000, 0, 2000), 'datasets/annotations/P7_annotated/P7_HE_Default_Extended_4_2.txt'],
-    ['P7_HE_Default_Extended_5_2', (0, 2000, 0, 2000), 'datasets/annotations/P7_annotated/P7_HE_Default_Extended_5_2.txt'],
-    ['P13_1_1', (0, 2000, 0, 2000), 'datasets/annotations/P13_annotated/P13_1_1_annotated.txt'],
-    ['P13_1_2', (0, 2000, 0, 2000), 'datasets/annotations/P13_annotated/P13_1_2_annotated.txt'],
-    ['P13_2_2', (0, 2000, 0, 2000), 'datasets/annotations/P13_annotated/P13_2_2_annotated.txt'],
+    #['P7_HE_Default_Extended_5_2', (0, 2000, 0, 2000), 'datasets/annotations/P7_annotated/P7_HE_Default_Extended_5_2.txt'],
+    ['P9_1_1', (0, 2000, 0, 2000), 'datasets/annotations/P9_annotated/P9_1_1_annotated.txt'],
+    ['P9_2_1', (0, 2000, 0, 2000), 'datasets/annotations/P9_annotated/P9_2_1_annotated.txt'],
+    ['P9_3_1', (0, 2000, 0, 2000), 'datasets/annotations/P9_annotated/P9_3_1_annotated.txt'],
+    ['P9_4_1', (0, 2000, 0, 2000), 'datasets/annotations/P9_annotated/P9_4_1_annotated.txt'],
 ]
 
 val_annotation_path = [ #Filename, Coordinates, path to annotation
@@ -164,10 +169,9 @@ val_annotation_path = [ #Filename, Coordinates, path to annotation
 ]
 
 test_annotation_path = [ #Filename, Coordinates, path to annotation
-    ['P9_1_1', (0, 2000, 0, 2000), 'datasets/annotations/P9_annotated/P9_1_1_annotated.txt'],
-    ['P9_2_1', (0, 2000, 0, 2000), 'datasets/annotations/P9_annotated/P9_2_1_annotated.txt'],
-    ['P9_3_1', (0, 2000, 0, 2000), 'datasets/annotations/P9_annotated/P9_3_1_annotated.txt'],
-    ['P9_4_1', (0, 2000, 0, 2000), 'datasets/annotations/P9_annotated/P9_4_1_annotated.txt'],
+    ['P13_1_1', (0, 2000, 0, 2000), 'datasets/annotations/P13_annotated/P13_1_1_annotated.txt'],
+    #['P13_1_2', (0, 2000, 0, 2000), 'datasets/annotations/P13_annotated/P13_1_2_annotated.txt'],
+    ['P13_2_2', (0, 2000, 0, 2000), 'datasets/annotations/P13_annotated/P13_2_2_annotated.txt'],
 ]
 
 def get_agg_class(agg_class):
@@ -196,7 +200,7 @@ def get_criterion(task):
     """
     if task == 'link_prediction':
         # Pos weight to balance dataset without oversampling
-        criterion = nn.BCEWithLogitsLoss(pos_weight=torch.FloatTensor([7.]))
+        criterion = nn.BCELoss()#pos_weight=torch.FloatTensor([7.]))
 
     return criterion
 

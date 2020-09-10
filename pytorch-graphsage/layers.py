@@ -26,7 +26,7 @@ class Aggregator(nn.Module):
         self.output_dim = output_dim
         self.device = device
 
-    def forward(self, features, nodes, mapping, rows, num_samples=5):
+    def forward(self, features, nodes, mapping, rows, dist, init_mapping, num_samples=5):
         """
         Parameters
         ----------
@@ -51,20 +51,29 @@ class Aggregator(nn.Module):
         """
         _choice, _len, _min = np.random.choice, len, min
         mapped_rows = [np.array([mapping[v] for v in row], dtype=np.int64) for row in rows]
+        #init_mapped_rows = [np.array([init_mapping[v] for v in row], dtype=np.int64) for row in rows]
         if num_samples == -1:
             sampled_rows = mapped_rows
         else:
-            sampled_rows = [_choice(row, _min(_len(row), num_samples), _len(row) < num_samples) for row in mapped_rows]
-
+            sampled_rows = []
+            init_sampled_rows = []
+            inds = [_choice(len(row), _min(_len(row), num_samples), _len(row) < num_samples) for row in mapped_rows] # len(rows) x num_samples
+            for i in range(len(inds)):
+                sampled_rows.append(mapped_rows[i][inds[i]])
+                init_sampled_rows.append(np.array(rows[i])[inds[i]])
         n = _len(nodes)
         if self.__class__.__name__ == 'LSTMAggregator':
             out = torch.zeros(n, 2*self.output_dim).to(self.device)
         else:
             out = torch.zeros(n, self.output_dim).to(self.device)
+
         for i in range(n):
             if _len(sampled_rows[i]) != 0:
-                out[i, :] = self._aggregate(features[sampled_rows[i], :])
-
+                if self.__class__.__name__ == 'MeanAggregator':
+                    out[i, :] = self._aggregate(torch.cat((features[mapping[nodes[i]], :].view(1,-1), features[sampled_rows[i], :])), dist[nodes[i], init_sampled_rows[i]])#
+                else:
+                    out[i, :] = self._aggregate(features[sampled_rows[i], :])
+                    #out[i, :] = self._aggregate(torch.cat((features[sampled_rows[i], :], dist[nodes[i], init_sampled_rows[i]].view(-1,1).float()),1))
         return out
 
     def _aggregate(self, features):
@@ -78,7 +87,7 @@ class Aggregator(nn.Module):
 
 class MeanAggregator(Aggregator):
 
-    def _aggregate(self, features):
+    def _aggregate(self, features, dist):
         """
         Parameters
         ----------
@@ -88,7 +97,13 @@ class MeanAggregator(Aggregator):
         -------
         Aggregated feature.
         """
-        return torch.mean(features, dim=0)
+        min_dist = torch.min(dist)
+        dist = torch.div(min_dist, dist)
+        dist = torch.cat((dist, torch.ones(1, dtype=torch.float64)))
+        sum_dist = torch.sum(dist)
+
+        return torch.div(torch.sum(torch.mul(features, dist.view(-1, 1)), dim=0), sum_dist)    # Return weighted average
+        #return torch.mean(features, dim=0) # Return mean of features
 
 class PoolAggregator(Aggregator):
 

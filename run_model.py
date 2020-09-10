@@ -19,6 +19,8 @@ import torchvision.transforms as transforms
 import torchvision.datasets as datasets
 import torchvision.models as models
 
+from sklearn.metrics import classification_report
+
 
 from efficientnet_pytorch import EfficientNet
 from CellDataset import CellDataset
@@ -26,7 +28,7 @@ from CellDataset import CellDataset
 best_acc1 = 0
 
 # Static config
-num_classes = 5
+num_classes = 4
 class_names = ['inflammatory', 'lymphocyte', 'fibroblast and endothelial',
                'epithelial', 'apoptosis / civiatte body']
 shuffle = True
@@ -87,7 +89,8 @@ def main_worker(loaders, split, gpu, ngpus, args):
             model.to("cpu")
 
     # Class weights = (total_count - class_count) / total_count
-    weights = [(25137-2017)/25138, (25137-3211)/25138, (25137-7296)/25137, (25137-12519)/25137, (25137-95)/25137]
+    weights = [25137/2017, 25137/3211, 25137/7296, 25137/12519]
+    weights = [(25137-2017)/25137, (25137-3211)/25137, (25137-7296)/25137, (25137-12519)/25137]
     class_weights = torch.FloatTensor(weights)
     if torch.cuda.is_available():
         class_weights = class_weights.cuda()
@@ -95,8 +98,12 @@ def main_worker(loaders, split, gpu, ngpus, args):
     # Define loss function (criterion) and optimizer
     if torch.cuda.is_available():
         criterion = nn.CrossEntropyLoss(weight=class_weights).cuda(args.gpu)
+        if args.upsample:
+            criterion = nn.CrossEntropyLoss().cuda(args.gpu)
     else:
         criterion = nn.CrossEntropyLoss(weight=class_weights)
+        if args.upsample:
+            criterion = nn.CrossEntropyLoss()
 
     optimizer = torch.optim.SGD(model.parameters(), args.lr,
                                 nesterov=True,
@@ -137,7 +144,7 @@ def main_worker(loaders, split, gpu, ngpus, args):
         train(loaders['train'], model, criterion, optimizer, epoch, args)
 
         # evaluate on validation set
-        acc1 = validate(loaders['val'], model, criterion, args)
+        acc1, _ = validate(loaders['val'], model, criterion, args)
 
         # remember best acc@1 and save checkpoint
         is_best = acc1 > best_acc1
@@ -149,19 +156,21 @@ def main_worker(loaders, split, gpu, ngpus, args):
             'state_dict': model.state_dict(),
             'best_acc1': best_acc1,
             'optimizer': optimizer.state_dict(),
-        }, is_best)
+        }, is_best, split)
 
     if args.validate:
-        res = validate(loaders['val'], model, criterion, args)
+        res, classification = validate(loaders['val'], model, criterion, args)
         with open('res_val_{}.txt'.format(split), 'w') as f:
             print(res, file=f)
-        return
+            print(classification, file=f)
+
 
     if args.evaluate:
-        res = validate(loaders['test'], model, criterion, args)
+        res, classification = validate(loaders['test'], model, criterion, args)
         with open('res_test_{}.txt'.format(split), 'w') as f:
             print(res, file=f)
-        return
+            print(classification, file=f)
+
 
 
 def train(train_loader, model, criterion, optimizer, epoch, args):
@@ -216,12 +225,13 @@ def validate(val_loader, model, criterion, args):
     topC2 = AverageMeter('Acc C2', ':6.2f')
     topC3 = AverageMeter('Acc C3', ':6.2f')
     topC4 = AverageMeter('Acc C4', ':6.2f')
-    topC5 = AverageMeter('Acc C5', ':6.2f')
-    progress = ProgressMeter(len(val_loader), batch_time, losses, top1, topC1, topC2, topC3, topC4, topC5,
+    progress = ProgressMeter(len(val_loader), batch_time, losses, top1, topC1, topC2, topC3, topC4,
                              prefix='Test: ')
 
     # switch to evaluate mode
     model.eval()
+
+    y_true, y_pred = [], []
 
     with torch.no_grad():
         end = time.time()
@@ -240,6 +250,12 @@ def validate(val_loader, model, criterion, args):
             acc1 = accuracy(output, target, topk=(1,))
             losses.update(loss.item(), images.size(0))
             top1.update(acc1[0].item(), images.size(0))
+
+            _, pred = output.topk(1, 1, True, True)
+            pred = pred.t()
+
+            y_true.extend(target.detach().cpu().numpy())
+            y_pred.extend(pred.detach().cpu().numpy()[0])
 
             C1indices = [index for index, element in enumerate(target) if element == 0]
             if len(C1indices) > 0:
@@ -261,11 +277,6 @@ def validate(val_loader, model, criterion, args):
                 accC4 = accuracy(output[C4indices], target[C4indices], topk=(1,))
                 topC4.update(accC4[0].item(), len(C4indices))
 
-            C5indices = [index for index, element in enumerate(target) if element == 4]
-            if len(C5indices) > 0:
-                accC5 = accuracy(output[C5indices], target[C5indices], topk=(1,))
-                topC5.update(accC5[0].item(), len(C5indices))
-
             # measure elapsed time
             batch_time.update(time.time() - end)
             end = time.time()
@@ -276,14 +287,15 @@ def validate(val_loader, model, criterion, args):
         # TODO: this should also be done with the ProgressMeter
         print(' * Acc {top1.avg:.3f}'
               .format(top1=top1))
+    report = classification_report(y_true, y_pred)
 
-    return top1.avg
+    return top1.avg, report
 
 
-def save_checkpoint(state, is_best, filename='checkpoint.pth.tar'):
+def save_checkpoint(state, is_best, split, filename='checkpoint.pth.tar'):
     torch.save(state, filename)
     if is_best:
-        shutil.copyfile(filename, 'model_best.pth.tar')
+        shutil.copyfile(filename, 'model_best_{}.pth.tar'.format(split))
 
 
 class AverageMeter(object):
