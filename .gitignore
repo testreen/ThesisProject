@@ -134,3 +134,10 @@ KI-Dataset/$RECYCLE.BIN/
 KI-Dataset/Digital Pathology/
 KI-Dataset/Original scan N10/
 KI-Dataset/.DS_Store
+res_val_*.txt
+slurm-*.out
+saved/
+EfficientDet.Pytorch/saved/
+.bashrc
+.forward
+.tcshrc

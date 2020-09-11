@@ -7,7 +7,6 @@ from torch.utils.data import DataLoader
 from torchvision import transforms
 import json
 
-from datasets.visual_aug import visualize, compare
 from datasets import (Augmenter, Normalizer,
                       Resizer, collater, detection_collate,
                       get_augumentation)
@@ -307,8 +306,5 @@ if __name__ == '__main__':
 
     test_dataset = KiDataset(
         root=args.dataset_root,
-        set_name='test',
-        transform=transforms.Compose(
-            [
-                Normalizer()]))
+        set_name='test')
     evaluate(test_dataset, model)

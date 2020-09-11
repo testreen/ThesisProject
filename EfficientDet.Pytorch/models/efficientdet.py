@@ -62,19 +62,19 @@ class EfficientDet(nn.Module):
         self.freeze_bn()
         self.criterion = FocalLoss()
 
-        path = os.path.join(script_dir, preload)
-        checkpoint = torch.load(path, map_location=torch.device('cpu'))
+        #path = os.path.join(script_dir, preload)
+        #checkpoint = torch.load(path, map_location=torch.device('cpu'))
 
-        state_dict = checkpoint['state_dict']
-        new_state_dict = OrderedDict()
-        for k, v in state_dict.items():
-            if k.startswith('module.'):
-                k = k[7:]
-            new_state_dict[k] = v
-        checkpoint['state_dict'] = new_state_dict
+        #state_dict = checkpoint['state_dict']
+        #new_state_dict = OrderedDict()
+        #for k, v in state_dict.items():
+        #    if k.startswith('module.'):
+        #        k = k[7:]
+        #    new_state_dict[k] = v
+        #checkpoint['state_dict'] = new_state_dict
         #self.backbone.load_state_dict(checkpoint['state_dict'])
-        print("=> loaded checkpoint '{}' (epoch {})"
-              .format('models/model_kebnekaise.pth.tar', checkpoint['epoch']))
+        #print("=> loaded checkpoint '{}' (epoch {})"
+        #      .format('models/model_kebnekaise.pth.tar', checkpoint['epoch']))
 
 
 

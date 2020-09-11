@@ -18,7 +18,6 @@ from torch.utils.data import DataLoader
 
 from models.efficientdet import EfficientDet
 from datasets import Resizer, Normalizer, Augmenter, collater
-from datasets.visual_aug import visualize
 from datasets.ki import KiDataset
 from utils import EFFICIENTDET, get_state_dict
 from eval import evaluate
@@ -31,7 +30,7 @@ parser.add_argument('--dataset_root', default='datasets/', type=str,
                     help='path to dataset')
 parser.add_argument('--resume', default=None, type=str,
                     help='Checkpoint state_dict file to resume training from')
-parser.add_argument('--num_epoch', default=200, type=int,
+parser.add_argument('--num_epoch', default=100, type=int,
                     help='Num epoch for training')
 parser.add_argument('--batch_size', default=32, type=int,
                     help='Batch size for training')
@@ -135,15 +134,10 @@ def main_worker(gpu, ngpus_per_node, args):
         root=args.dataset_root,
         set_name='train',
         transform=transforms.Compose(
-            [
-                Normalizer(),
-                Augmenter()]))
+            [Augmenter()]))
     valid_dataset = KiDataset(
         root=args.dataset_root,
-        set_name='val',
-        transform=transforms.Compose(
-            [
-                Normalizer()]))
+        set_name='val')
     #test_dataset = KiDataset(
     #    root=args.dataset_root,
     #    set_name='test',

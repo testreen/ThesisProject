@@ -79,7 +79,15 @@ def parseData(basePath="", fileCount=len(label_paths)):
         # Parse full image to nparray
         image = basePath+label_paths[path]+'.tif'
         im = Image.open(image)
-        imarray = np.array(im, dtype=np.double)
+        imarray = np.array(im, dtype=np.double)/255
+        B = imarray.copy()
+        means = B.mean(axis=2)
+        B[means > 0.95,:] = np.nan
+        mean = np.nanmean(B, axis=(0,1))
+        std = np.nanstd(B, axis=(0,1))
+        #mean = np.mean(imarray[imarray != 1.0], axis = (0,1))
+        #std = np.std(imarray[imarray != 1.0], axis = (0,1))
+        imarray = (imarray - mean) / std
 
         # Loop through crops
         for child in root.iter('object'):
@@ -107,6 +115,6 @@ def parseData(basePath="", fileCount=len(label_paths)):
                 meanY = max(meanY, 16)
                 meanY = min(meanY, imarray.shape[0]-16)
 
-                cropArray = imarray[meanY-16:meanY+16, meanX-16:meanX+16, :]/256
+                cropArray = imarray[meanY-16:meanY+16, meanX-16:meanX+16, :]
                 images.append(cropArray)
     return images, labels

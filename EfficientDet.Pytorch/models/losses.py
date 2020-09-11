@@ -36,8 +36,8 @@ class FocalLoss(nn.Module):
         classification_losses = []
         regression_losses = []
 
-        beta = 0.9999
-        samples_per_cls = [1165, 2219, 4896, 8133]
+        beta = 0.999
+        samples_per_cls = [865, 2219, 5896, 8133]
         effective_num = 1.0 - np.power(beta, samples_per_cls)
         weights = (1.0 - beta) / np.array(effective_num)
         weights = weights / np.sum(weights) * 4

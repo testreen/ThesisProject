@@ -1,6 +1,7 @@
 import os
 import matplotlib.image as mpimg
 import argparse
+import math
 
 import torch
 import torch.nn as nn
@@ -15,6 +16,7 @@ import matplotlib.pyplot as plt
 import PIL
 from PIL import Image
 import time
+import random
 
 from parseData import parseData
 from efficientnet_pytorch import EfficientNet
@@ -71,14 +73,30 @@ parser.add_argument('--image_size', default=32, type=int,
                     help='image size')
 parser.add_argument('--advprop', default=False, action='store_true',
                     help='use advprop or not')
+parser.add_argument('--upsample', default=False, action='store_true',
+                    help='upsample, else use class weights')
 
 # Static config
-num_classes = 5
+num_classes = 4
 class_names = ['inflammatory', 'lymphocyte', 'fibroblast and endothelial',
                'epithelial', 'apoptosis / civiatte body']
 shuffle = True
 k = 5 # Cross-validation splits
 
+class AddGaussianNoise(object):
+    def __init__(self, mean=0., std=1.):
+        self.std = std
+        self.mean = mean
+
+    def __call__(self, tensor):
+        return tensor + torch.randn(tensor.size()) * self.std + self.mean
+
+    def __repr__(self):
+        return self.__class__.__name__ + '(mean={0}, std={1})'.format(self.mean, self.std)
+
+
+def lambdaTransform(image):
+    return image * 2.0 - 1.0
 
 def main():
     args = parser.parse_args()
@@ -86,23 +104,24 @@ def main():
     a = torch.cuda.FloatTensor([1.])
     print(a)
     # Normalize using dataset mean + std or advprop settings
-    if args.advprop:
-        normalize = transforms.Lambda(lambda img: img * 2.0 - 1.0)
-    else:
-        normalize = transforms.Normalize(mean=[0.72482513, 0.59128926, 0.76370454],
-                                         std=[0.18745105, 0.2514997,  0.15264913])
+    #if args.advprop:
+    #    normalize = transforms.Lambda(lambdaTransform)
+    #else:
+    #    normalize = transforms.Normalize(mean=[0.72482513, 0.59128926, 0.76370454],
+    #                                     std=[0.18745105, 0.2514997,  0.15264913])
 
     image_size = args.image_size
     print('Using image size', image_size)
 
     train_tsfm = transforms.Compose([
         transforms.ToPILImage(),
-        transforms.Resize(image_size+2, interpolation=PIL.Image.BICUBIC),
+        transforms.Resize(image_size+math.floor(0.1*image_size), interpolation=PIL.Image.BICUBIC),
         transforms.RandomResizedCrop(image_size),
-        transforms.RandomHorizontalFlip(),
-        transforms.RandomVerticalFlip(),
+        #transforms.RandomHorizontalFlip(),
+        #transforms.RandomVerticalFlip(),
         transforms.ToTensor(),
-        normalize,
+        AddGaussianNoise(0., 0.1)
+        #normalize,
     ])
 
     val_tsfm = transforms.Compose([
@@ -110,17 +129,50 @@ def main():
         transforms.Resize(image_size, interpolation=PIL.Image.BICUBIC),
         transforms.CenterCrop(image_size),
         transforms.ToTensor(),
-        normalize,
+        #normalize,
     ])
 
     # Load and split datasets and convert to tensor
     # Test images from different slices than train
     images, labels = parseData(basePath=args.data)
 
+    for i in range(len(labels)-1, -1, -1):
+        if(labels[i] == 4):
+            labels.pop(i)
+            images.pop(i)
+
     train_images = images[:min(20390, len(images)-20)]
     train_labels = labels[:min(20390, len(images)-20)]
     test_images = images[min(20390, len(images)-20):]
     test_labels = labels[min(20390, len(images)-20):]
+
+    if args.upsample:
+        c0_ind = [i for i, x in enumerate(train_labels) if x == 0]
+        c1_ind = [i for i, x in enumerate(train_labels) if x == 1]
+        c2_ind = [i for i, x in enumerate(train_labels) if x == 2]
+        c3_ind = [i for i, x in enumerate(train_labels) if x == 3]
+
+        for i in range(8):
+            for idx, val in enumerate(c0_ind):
+                train_labels.append(train_labels[val])
+                train_images.append(train_images[val])
+        for i in range(4):
+            for idx, val in enumerate(c1_ind):
+                train_labels.append(train_labels[val])
+                train_images.append(train_images[val])
+        for i in range(1):
+            for idx, val in enumerate(c2_ind):
+                train_labels.append(train_labels[val])
+                train_images.append(train_images[val])
+
+        for idx, val in enumerate(c3_ind):
+            if idx < 2000:
+                train_labels.append(train_labels[val])
+                train_images.append(train_images[val])
+    
+    temp = list(zip(train_labels, train_images)) 
+    random.shuffle(temp)  
+    train_labels, train_images = zip(*temp)
 
     skf = StratifiedKFold(n_splits=k, shuffle=shuffle, random_state=args.seed)
 

@@ -79,13 +79,22 @@ def parseKI(basePath="", fileCount=len(label_paths)):
         # Parse full image to nparray
         image = basePath+label_paths[path]+'.tif'
         im = Image.open(image)
-        imarray = np.array(im, dtype=np.double)/256
+        imarray = np.array(im, dtype=np.double)/255
 
         # Pad image to 2000x2000x3
-        padded_array = np.zeros((2000, 2000, 3))
+        padded_array = np.ones((2000, 2000, 3))
         shape = np.shape(imarray)
         padded_array[:shape[0], :shape[1]] = imarray
         imarray = padded_array
+
+        B = imarray.copy()
+        means = B.mean(axis=2)
+        B[means >= 1.0,:] = np.nan
+        mean = np.nanmean(B, axis=(0,1))
+        std = np.nanstd(B, axis=(0,1))
+        #mean = np.mean(imarray[imarray != 1.0], axis = (0,1))
+        #std = np.std(imarray[imarray != 1.0], axis = (0,1))
+        imarray = (imarray - mean) / std
 
 
         targets = []
